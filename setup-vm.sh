@@ -8,7 +8,6 @@ sudo apt install -y \
     git \
     curl \
     docker.io \
-    docker-compose \
     python3 \
     python3-pip
 

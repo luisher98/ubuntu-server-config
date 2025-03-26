@@ -89,6 +89,30 @@ To manually deploy updates:
    docker compose up -d --build
    ```
 
+## Troubleshooting
+
+If you encounter issues with Docker Compose commands:
+
+1. Make sure you're using Docker Compose v2:
+   ```bash
+   docker compose version
+   ```
+
+2. If needed, you can use the full command:
+   ```bash
+   docker compose -f docker-compose.yml up -d
+   ```
+
+3. To check service status:
+   ```bash
+   docker compose ps
+   ```
+
+4. To view logs:
+   ```bash
+   docker compose logs
+   ```
+
 ## Security
 
 - Only the Nginx container exposes an external port (80)
