@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: /home/ubuntu/video-to-summary
+      context: /home/ubuntu/apps/video-summary/backend
       dockerfile: ${PWD}/backend.Dockerfile
     container_name: video-summary-backend
     restart: unless-stopped
@@ -17,7 +17,7 @@ services:
 
   frontend:
     build:
-      context: /home/ubuntu/video-to-summary-app
+      context: /home/ubuntu/apps/video-summary/frontend
       dockerfile: ${PWD}/frontend.Dockerfile
     container_name: video-summary-frontend
     restart: unless-stopped

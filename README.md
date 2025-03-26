@@ -14,47 +14,49 @@ The deployment assumes the following folder structure on the server:
 
 ```
 /home/ubuntu/
-  ├── video-to-summary/         # Backend code (already cloned)
-  ├── video-to-summary-app/     # Frontend code (already cloned)
-  └── deployment/               # This repo
-      ├── docker-compose.yml
-      ├── backend.Dockerfile
-      ├── frontend.Dockerfile
-      ├── nginx.conf
-      ├── frontend-nginx.conf
-      ├── .env                  # Optional environment variables
-      └── .github/workflows/
-          ├── deploy-backend.yml
-          └── deploy-frontend.yml
+  └── apps/
+      └── video-summary/
+          ├── backend/           # Backend code (already cloned)
+          ├── frontend/          # Frontend code (already cloned)
+          └── deployment/        # This repo
+              ├── docker-compose.yml
+              ├── backend.Dockerfile
+              ├── frontend.Dockerfile
+              ├── nginx.conf
+              ├── frontend-nginx.conf
+              ├── .env           # Optional environment variables
+              └── .github/workflows/
+                  ├── deploy-backend.yml
+                  └── deploy-frontend.yml
 ```
 
 ## Initial Deployment
 
 1. Clone the backend and frontend repositories:
    ```bash
-   git clone https://github.com/luisher98/video-to-summary.git /home/ubuntu/video-to-summary
-   git clone https://github.com/luisher98/video-to-summary-app.git /home/ubuntu/video-to-summary-app
+   git clone https://github.com/luisher98/video-to-summary.git /home/ubuntu/apps/video-summary/backend
+   git clone https://github.com/luisher98/video-to-summary-app.git /home/ubuntu/apps/video-summary/frontend
    ```
 
 2. Clone this deployment repository:
    ```bash
-   git clone <this-repo-url> /home/ubuntu/deployment
+   git clone <this-repo-url> /home/ubuntu/apps/video-summary/deployment
    ```
 
 3. Create a `.env` file from the example (optional):
    ```bash
-   cp /home/ubuntu/deployment/.env.example /home/ubuntu/deployment/.env
+   cp /home/ubuntu/apps/video-summary/deployment/.env.example /home/ubuntu/apps/video-summary/deployment/.env
    # Edit with your actual configuration values
    ```
 
 4. Copy the frontend nginx config to the frontend repo:
    ```bash
-   cp /home/ubuntu/deployment/frontend-nginx.conf /home/ubuntu/video-to-summary-app/nginx.conf
+   cp /home/ubuntu/apps/video-summary/deployment/frontend-nginx.conf /home/ubuntu/apps/video-summary/frontend/nginx.conf
    ```
 
 5. Build and start all services:
    ```bash
-   cd /home/ubuntu/deployment
+   cd /home/ubuntu/apps/video-summary/deployment
    docker compose up -d
    ```
 
@@ -72,18 +74,18 @@ To manually deploy updates:
 
 1. Pull the latest code for the backend/frontend:
    ```bash
-   cd /home/ubuntu/video-to-summary && git pull
-   cd /home/ubuntu/video-to-summary-app && git pull
+   cd /home/ubuntu/apps/video-summary/backend && git pull
+   cd /home/ubuntu/apps/video-summary/frontend && git pull
    ```
 
 2. Pull the latest deployment configuration:
    ```bash
-   cd /home/ubuntu/deployment && git pull
+   cd /home/ubuntu/apps/video-summary/deployment && git pull
    ```
 
 3. Rebuild and restart services:
    ```bash
-   cd /home/ubuntu/deployment
+   cd /home/ubuntu/apps/video-summary/deployment
    docker compose up -d --build
    ```
 
