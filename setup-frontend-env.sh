@@ -8,15 +8,21 @@ generate_secret() {
     openssl rand -base64 32
 }
 
-# Function to prompt for sensitive input
-prompt_secret() {
+# Function to prompt for sensitive information
+prompt_for_sensitive() {
     local prompt="$1"
     local var_name="$2"
+    local default="$3"
     local value
-    echo -n "$prompt: "
-    read -s value
-    echo
-    echo "$var_name=$value" >> .env
+
+    if [ -n "$default" ]; then
+        read -p "$prompt [$default]: " value
+        value=${value:-$default}
+    else
+        read -p "$prompt: " value
+    fi
+
+    echo "$value"
 }
 
 # Function to validate required variables
@@ -39,60 +45,53 @@ validate_required_vars() {
     fi
 }
 
-# Check if .env already exists
+# Check if .env file exists
 if [ -f .env ]; then
-    echo "Warning: .env file already exists. Do you want to:"
-    echo "1) Keep existing .env file"
-    echo "2) Create a new .env file (existing one will be backed up)"
-    read -p "Choose an option (1 or 2): " choice
-    
-    if [ "$choice" = "2" ]; then
-        backup_file=".env.backup.$(date +%Y%m%d_%H%M%S)"
-        mv .env "$backup_file" || {
-            echo "Error: Failed to backup existing .env file"
-            exit 1
-        }
-        echo "Backed up existing .env to $backup_file"
-    else
-        echo "Keeping existing .env file"
-        exit 0
+    echo "Warning: .env file already exists"
+    read -p "Do you want to backup the existing .env file? (y/n): " backup
+    if [ "$backup" = "y" ]; then
+        cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+        echo "Backup created"
     fi
 fi
 
-# Create new .env file
-echo "Creating new frontend .env file..."
+echo "Please paste all frontend environment variables at once in the following format:"
+echo "NEXT_PUBLIC_API_URL=/api"
+echo "NEXT_PUBLIC_API_VERSION=v1"
+echo "NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME=summarystorage"
+echo "NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING=your_connection_string"
+echo "NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME=summary"
+echo "NEXT_PUBLIC_YOUTUBE_API_KEY=your_youtube_api_key"
+echo "NEXT_PUBLIC_MAX_FILE_SIZE=524288000"
+echo "NEXT_PUBLIC_MAX_LOCAL_FILESIZE=209715200"
+echo "NEXT_PUBLIC_SUPPORTED_VIDEO_FORMATS=mp4,webm,ogg"
+echo "NEXT_PUBLIC_SUPPORTED_AUDIO_FORMATS=mp3,wav,ogg"
+echo ""
+echo "Paste your environment variables below (press Ctrl+D when done):"
 
-# Basic configuration
-cat > .env << EOL
-# API Configuration
-NEXT_PUBLIC_API_URL=/api
-NEXT_PUBLIC_API_VERSION=v1
+# Create a temporary file to store the pasted content
+temp_file=$(mktemp)
+cat > "$temp_file"
 
-# Azure Storage Configuration
-NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME=summarystorage
-NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING=
-NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME=summary
+# Validate the content
+if ! grep -q "^NEXT_PUBLIC_API_URL=" "$temp_file"; then
+    echo "Error: Missing required variable NEXT_PUBLIC_API_URL"
+    rm "$temp_file"
+    exit 1
+fi
 
-# YouTube API Configuration (Optional)
-NEXT_PUBLIC_YOUTUBE_API_KEY=
+if ! grep -q "^NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING=" "$temp_file"; then
+    echo "Error: Missing required variable NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING"
+    rm "$temp_file"
+    exit 1
+fi
 
-# Application Settings
-NEXT_PUBLIC_MAX_FILE_SIZE=524288000  # 500MB
-NEXT_PUBLIC_MAX_LOCAL_FILESIZE=209715200  # 200MB
-NEXT_PUBLIC_SUPPORTED_VIDEO_FORMATS=mp4,webm,ogg
-NEXT_PUBLIC_SUPPORTED_AUDIO_FORMATS=mp3,wav,ogg
-EOL
-
-# Prompt for sensitive information
-echo "Please provide the following sensitive information (press Enter to skip):"
-prompt_secret "Azure Storage Connection String" "NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING"
-prompt_secret "YouTube API Key (Optional)" "NEXT_PUBLIC_YOUTUBE_API_KEY"
+# Create the .env file with proper permissions
+cat "$temp_file" > .env
+chmod 600 .env
+rm "$temp_file"
 
 # Validate required variables
 validate_required_vars
 
-# Set proper permissions
-chmod 600 .env
-
-echo "✅ Frontend environment setup complete! The .env file has been created with secure permissions."
-echo "Make sure to keep this file secure and never commit it to version control." 
+echo "Frontend environment variables have been set successfully!" 

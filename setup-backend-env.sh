@@ -28,25 +28,21 @@ validate_connection_string() {
     return 0
 }
 
-# Function to prompt for sensitive input
-prompt_secret() {
+# Function to prompt for sensitive information
+prompt_for_sensitive() {
     local prompt="$1"
     local var_name="$2"
-    local validate_func="$3"
+    local default="$3"
     local value
-    while true; do
-        echo -n "$prompt: "
-        read -s value
-        echo
-        if [ -n "$validate_func" ]; then
-            if $validate_func "$value"; then
-                break
-            fi
-        else
-            break
-        fi
-    done
-    echo "$var_name=$value" >> .env
+
+    if [ -n "$default" ]; then
+        read -p "$prompt [$default]: " value
+        value=${value:-$default}
+    else
+        read -p "$prompt: " value
+    fi
+
+    echo "$value"
 }
 
 # Function to validate required variables
@@ -69,84 +65,72 @@ validate_required_vars() {
     fi
 }
 
-# Check if .env already exists
+# Check if .env file exists
 if [ -f .env ]; then
-    echo "Warning: .env file already exists. Do you want to:"
-    echo "1) Keep existing .env file"
-    echo "2) Create a new .env file (existing one will be backed up)"
-    read -p "Choose an option (1 or 2): " choice
-    
-    if [ "$choice" = "2" ]; then
-        backup_file=".env.backup.$(date +%Y%m%d_%H%M%S)"
-        mv .env "$backup_file" || {
-            echo "Error: Failed to backup existing .env file"
-            exit 1
-        }
-        echo "Backed up existing .env to $backup_file"
-    else
-        echo "Keeping existing .env file"
-        exit 0
+    echo "Warning: .env file already exists"
+    read -p "Do you want to backup the existing .env file? (y/n): " backup
+    if [ "$backup" = "y" ]; then
+        cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+        echo "Backup created"
     fi
 fi
 
-# Create new .env file
-echo "Creating new backend .env file..."
+echo "Please paste all backend environment variables at once in the following format:"
+echo "PORT=5050"
+echo "NODE_ENV=production"
+echo "WEBSITE_HOSTNAME="
+echo "OPENAI_API_KEY=your_key_here"
+echo "YOUTUBE_API_KEY=your_key_here"
+echo "AZURE_STORAGE_ACCOUNT_NAME=summarystorage"
+echo "AZURE_STORAGE_CONNECTION_STRING=your_connection_string"
+echo "AZURE_STORAGE_CONTAINER_NAME=summary"
+echo "AZURE_TENANT_ID=your_tenant_id"
+echo "AZURE_CLIENT_ID=your_client_id"
+echo "AZURE_CLIENT_SECRET=your_client_secret"
+echo "MAX_FILE_SIZE=524288000"
+echo "MAX_LOCAL_FILESIZE=209715200"
+echo "MAX_LOCAL_FILESIZE_MB=100"
+echo "RATE_LIMIT_WINDOW_MS=60000"
+echo "RATE_LIMIT_MAX_REQUESTS=10"
+echo "TEMP_DIR="
+echo "TEMP_VIDEOS_DIR="
+echo "TEMP_AUDIOS_DIR="
+echo "TEMP_SESSIONS_DIR="
+echo ""
+echo "Paste your environment variables below (press Ctrl+D when done):"
 
-# Basic configuration
-cat > .env << EOL
-# Server Configuration
-PORT=5050
-NODE_ENV=production
-WEBSITE_HOSTNAME=
+# Create a temporary file to store the pasted content
+temp_file=$(mktemp)
+cat > "$temp_file"
 
-# OpenAI Configuration
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-3.5-turbo
+# Validate the content
+if ! grep -q "^PORT=" "$temp_file"; then
+    echo "Error: Missing required variable PORT"
+    rm "$temp_file"
+    exit 1
+fi
 
-# YouTube Configuration
-YOUTUBE_API_KEY=
+if ! grep -q "^NODE_ENV=" "$temp_file"; then
+    echo "Error: Missing required variable NODE_ENV"
+    rm "$temp_file"
+    exit 1
+fi
 
-# Azure Storage Configuration
-AZURE_STORAGE_ACCOUNT_NAME=summarystorage
-AZURE_STORAGE_CONNECTION_STRING=
-AZURE_STORAGE_CONTAINER_NAME=summary
-AZURE_TENANT_ID=
-AZURE_CLIENT_ID=
-AZURE_CLIENT_SECRET=
+if ! grep -q "^OPENAI_API_KEY=" "$temp_file"; then
+    echo "Error: Missing required variable OPENAI_API_KEY"
+    rm "$temp_file"
+    exit 1
+fi
 
-# File Size Limits
-MAX_FILE_SIZE=524288000  # 500MB
-MAX_LOCAL_FILESIZE=209715200  # 200MB
-MAX_LOCAL_FILESIZE_MB=100
+if ! grep -q "^AZURE_STORAGE_CONNECTION_STRING=" "$temp_file"; then
+    echo "Error: Missing required variable AZURE_STORAGE_CONNECTION_STRING"
+    rm "$temp_file"
+    exit 1
+fi
 
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=60000  # 1 minute
-RATE_LIMIT_MAX_REQUESTS=10  # 10 requests per minute
-
-# Temporary Directories
-TEMP_DIR=
-TEMP_VIDEOS_DIR=
-TEMP_AUDIOS_DIR=
-TEMP_SESSIONS_DIR=
-
-# YouTube cookies (not used currently)
-YOUTUBE_COOKIES=
-EOL
-
-# Prompt for sensitive information with validation
-echo "Please provide the following sensitive information (press Enter to skip):"
-prompt_secret "OpenAI API Key" "OPENAI_API_KEY" "validate_api_key"
-prompt_secret "YouTube API Key" "YOUTUBE_API_KEY" "validate_api_key"
-prompt_secret "Azure Storage Connection String" "AZURE_STORAGE_CONNECTION_STRING" "validate_connection_string"
-prompt_secret "Azure Tenant ID" "AZURE_TENANT_ID" "validate_api_key"
-prompt_secret "Azure Client ID" "AZURE_CLIENT_ID" "validate_api_key"
-prompt_secret "Azure Client Secret" "AZURE_CLIENT_SECRET" "validate_api_key"
-
-# Validate required variables
-validate_required_vars
-
-# Set proper permissions
+# Create the .env file with proper permissions
+cat "$temp_file" > .env
 chmod 600 .env
+rm "$temp_file"
 
-echo "✅ Backend environment setup complete! The .env file has been created with secure permissions."
-echo "Make sure to keep this file secure and never commit it to version control." 
+echo "Backend environment variables have been set successfully!" 

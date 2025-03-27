@@ -19,6 +19,7 @@ git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/app
 
 # 2. Run the VM setup script (this will install Docker, create directories, and clone repositories)
 cd /home/ubuntu/apps/video-summary/deployment
+chmod +x setup-vm.sh
 ./setup-vm.sh
 
 # 3. Log out and log back in for Docker group changes to take effect
@@ -27,12 +28,15 @@ exit
 
 # 4. Set up environment variables
 cd /home/ubuntu/apps/video-summary/deployment
+chmod +x setup-env.sh
 ./setup-env.sh
 
 cd /home/ubuntu/apps/video-summary/backend
+chmod +x setup-backend-env.sh
 ./setup-backend-env.sh
 
 cd /home/ubuntu/apps/video-summary/frontend
+chmod +x setup-frontend-env.sh
 ./setup-frontend-env.sh
 
 # 5. Start services
@@ -90,44 +94,51 @@ The deployment assumes the following folder structure on the server:
                   └── deploy-frontend.yml
 ```
 
-## Initial Deployment
+## Environment Variables Setup
 
-1. Clone the backend and frontend repositories:
-   ```bash
-   git clone https://github.com/luisher98/video-to-summary.git /home/ubuntu/apps/video-summary/backend
-   git clone https://github.com/luisher98/video-to-summary-app.git /home/ubuntu/apps/video-summary/frontend
-   ```
+The deployment requires three separate `.env` files. Each setup script will show you the required format and validate the input. Here's how to set them up:
 
-2. Clone this deployment repository:
+1. **Deployment Environment** (`/home/ubuntu/apps/video-summary/deployment/.env`):
    ```bash
-   git clone <this-repo-url> /home/ubuntu/apps/video-summary/deployment
-   ```
-
-3. Set up environment variables:
-   ```bash
-   # Main deployment environment
    cd /home/ubuntu/apps/video-summary/deployment
    ./setup-env.sh
-   
-   # Backend environment
+   ```
+   Required variables:
+   - NODE_ENV=production
+   - PORT=5000
+   - BACKEND_URL=http://localhost:5000
+   - FRONTEND_URL=http://localhost:3000
+   - JWT_SECRET=<generate_secure_random_string>
+   - API_KEY=<generate_secure_random_string>
+
+2. **Backend Environment** (`/home/ubuntu/apps/video-summary/backend/.env`):
+   ```bash
    cd /home/ubuntu/apps/video-summary/backend
    ./setup-backend-env.sh
-   
-   # Frontend environment
+   ```
+   Required variables:
+   - PORT=5050
+   - NODE_ENV=production
+   - OPENAI_API_KEY=<your_openai_api_key>
+   - AZURE_STORAGE_CONNECTION_STRING=<your_azure_connection_string>
+   - Other variables as shown in the script
+
+3. **Frontend Environment** (`/home/ubuntu/apps/video-summary/frontend/.env`):
+   ```bash
    cd /home/ubuntu/apps/video-summary/frontend
    ./setup-frontend-env.sh
    ```
+   Required variables:
+   - NEXT_PUBLIC_API_URL=/api
+   - NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING=<your_azure_connection_string>
+   - Other variables as shown in the script
 
-4. Copy the frontend nginx config to the frontend repo:
-   ```bash
-   cp /home/ubuntu/apps/video-summary/deployment/frontend-nginx.conf /home/ubuntu/apps/video-summary/frontend/nginx.conf
-   ```
-
-5. Build and start all services:
-   ```bash
-   cd /home/ubuntu/apps/video-summary/deployment
-   docker compose up -d
-   ```
+Each setup script will:
+1. Check for existing `.env` file and offer to backup
+2. Show you the required format
+3. Let you paste all variables at once
+4. Validate required variables
+5. Set proper file permissions (600)
 
 ## Security Features
 
@@ -286,25 +297,3 @@ This will check:
    ```bash
    docker compose exec nginx tail -f /var/log/nginx/access.log
    ```
-
-## Backup and Recovery
-
-1. Environment files are automatically backed up when updated:
-   - `.env.backup.YYYYMMDD_HHMMSS`
-
-2. To restore from backup:
-   ```bash
-   cp .env.backup.YYYYMMDD_HHMMSS .env
-   ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
