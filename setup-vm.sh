@@ -81,7 +81,7 @@ sudo usermod -aG docker $USER
 
 # Create required directories
 echo "Creating application directories..."
-mkdir -p /home/ubuntu/apps/video-summary/{backend,frontend,deployment}
+mkdir -p /home/ubuntu/apps/video-summary/{backend,frontend}
 
 # Clone repositories
 echo "Cloning repositories..."
@@ -91,10 +91,6 @@ git clone https://github.com/luisher98/video-to-summary.git /home/ubuntu/apps/vi
 }
 git clone https://github.com/luisher98/video-to-summary-app.git /home/ubuntu/apps/video-summary/frontend || {
     echo "Error: Failed to clone frontend repository"
-    exit 1
-}
-git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/video-summary/deployment || {
-    echo "Error: Failed to clone deployment repository"
     exit 1
 }
 
