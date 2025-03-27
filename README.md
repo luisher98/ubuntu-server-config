@@ -31,12 +31,18 @@ cd /home/ubuntu/apps/deployment
 
 4. Set up environment variables for each application:
 ```bash
-cd /home/ubuntu/apps/video-summary
+# Set up backend environment
+cd /home/ubuntu/apps/video-summary/backend
+./setup-env.sh
+
+# Set up frontend environment
+cd /home/ubuntu/apps/video-summary/frontend
 ./setup-env.sh
 ```
 
 5. Start the applications:
 ```bash
+cd /home/ubuntu/apps/deployment
 docker compose up -d
 ```
 
@@ -63,6 +69,18 @@ groups:
         resources:
           cpus: '0.5'
           memory: 512M
+      nginx:
+        image: nginx:alpine
+        ports:
+          - "80:80"
+          - "443:443"
+        resources:
+          cpus: '0.5'
+          memory: 256M
+        volumes:
+          - ./nginx.conf:/etc/nginx/nginx.conf:ro
+          - ./certbot/conf:/etc/letsencrypt
+          - ./certbot/www:/var/www/certbot
 ```
 
 Use the `manage-apps.sh` script to manage applications:
@@ -84,35 +102,11 @@ Use the `manage-apps.sh` script to manage applications:
 ./manage-apps.sh remove-app my-app service
 ```
 
-## Deployment Workflows
-
-The repository includes three GitHub Actions workflows:
-
-1. **Server Configuration Deployment** (`deploy-config.yml`)
-   - Deploys changes to server configuration files
-   - Updates Docker and Nginx configurations
-   - Restarts services to apply changes
-   - Triggered by changes to:
-     - `apps.yaml`
-     - `setup-vm.sh`
-     - `manage-apps.sh`
-     - Docker and Nginx configurations
-
-2. **Frontend Deployment** (`deploy-frontend.yml`)
-   - Deploys changes to the frontend application
-   - Updates frontend container and Nginx configuration
-   - Triggered by changes to frontend-related files
-
-3. **Backend Deployment** (`deploy-backend.yml`)
-   - Deploys changes to the backend application
-   - Updates backend container and Nginx configuration
-   - Triggered by changes to backend-related files
-
 ## Directory Structure
 
 ```
 /home/ubuntu/apps/
-├── deployment/           # This repository
+├── deployment/           # Deployment configuration and scripts
 │   ├── apps.yaml        # Application configuration
 │   ├── setup-vm.sh      # VM setup script
 │   ├── manage-apps.sh   # Application management script
@@ -120,8 +114,9 @@ The repository includes three GitHub Actions workflows:
 │   └── nginx.conf
 └── video-summary/       # Video summary application
     ├── backend/         # Backend service
-    ├── frontend/        # Frontend service
-    └── .env            # Environment variables
+    │   └── .env        # Backend environment variables
+    └── frontend/        # Frontend service
+        └── .env        # Frontend environment variables
 ```
 
 ## Environment Variables
