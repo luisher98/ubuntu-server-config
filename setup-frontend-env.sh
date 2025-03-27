@@ -26,24 +26,12 @@ echo "NEXT_PUBLIC_MAX_LOCAL_FILESIZE=209715200"
 echo "NEXT_PUBLIC_SUPPORTED_VIDEO_FORMATS=mp4,webm,ogg"
 echo "NEXT_PUBLIC_SUPPORTED_AUDIO_FORMATS=mp3,wav,ogg"
 echo ""
-echo "Paste your environment variables below (press Ctrl+D when done):"
+echo "Paste your environment variables for the frontend below (press Ctrl+D when done):"
 
 # Create a temporary file to store the pasted content
 temp_file=$(mktemp)
 cat > "$temp_file"
 
-# Validate the content
-if ! grep -q "^NEXT_PUBLIC_API_URL=" "$temp_file"; then
-    echo "Error: Missing required variable NEXT_PUBLIC_API_URL"
-    rm "$temp_file"
-    exit 1
-fi
-
-if ! grep -q "^NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING=" "$temp_file"; then
-    echo "Error: Missing required variable NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING"
-    rm "$temp_file"
-    exit 1
-fi
 
 # Create the .env file with proper permissions
 cat "$temp_file" > .env

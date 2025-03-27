@@ -31,36 +31,11 @@ echo "TEMP_VIDEOS_DIR="
 echo "TEMP_AUDIOS_DIR="
 echo "TEMP_SESSIONS_DIR="
 echo ""
-echo "Paste your environment variables below (press Ctrl+D when done):"
+echo "Paste your environment variables for the backend below (press Ctrl+D when done):"
 
 # Create a temporary file to store the pasted content
 temp_file=$(mktemp)
 cat > "$temp_file"
-
-# Validate the content
-if ! grep -q "^PORT=" "$temp_file"; then
-    echo "Error: Missing required variable PORT"
-    rm "$temp_file"
-    exit 1
-fi
-
-if ! grep -q "^NODE_ENV=" "$temp_file"; then
-    echo "Error: Missing required variable NODE_ENV"
-    rm "$temp_file"
-    exit 1
-fi
-
-if ! grep -q "^OPENAI_API_KEY=" "$temp_file"; then
-    echo "Error: Missing required variable OPENAI_API_KEY"
-    rm "$temp_file"
-    exit 1
-fi
-
-if ! grep -q "^AZURE_STORAGE_CONNECTION_STRING=" "$temp_file"; then
-    echo "Error: Missing required variable AZURE_STORAGE_CONNECTION_STRING"
-    rm "$temp_file"
-    exit 1
-fi
 
 # Create the .env file with proper permissions
 cat "$temp_file" > .env
