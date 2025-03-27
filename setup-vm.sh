@@ -25,18 +25,31 @@ check_yq() {
             exit 1
         fi
         
-        # Download and install yq
+        # Create temporary directory for download
+        TEMP_DIR=$(mktemp -d)
+        echo "Created temporary directory: $TEMP_DIR"
+        
+        # Download yq
         echo "Downloading yq for ${ARCH}..."
-        if ! sudo curl -L "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}" -o /usr/local/bin/yq; then
+        if ! curl -L "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}" -o "$TEMP_DIR/yq"; then
             echo "Error: Failed to download yq"
+            rm -rf "$TEMP_DIR"
             exit 1
         fi
         
-        echo "Setting executable permissions..."
-        if ! sudo chmod a+x /usr/local/bin/yq; then
-            echo "Error: Failed to set executable permissions"
+        # Make the downloaded file executable
+        chmod +x "$TEMP_DIR/yq"
+        
+        # Install yq using install command
+        echo "Installing yq..."
+        if ! sudo install -m 755 "$TEMP_DIR/yq" /usr/local/bin/yq; then
+            echo "Error: Failed to install yq"
+            rm -rf "$TEMP_DIR"
             exit 1
         fi
+        
+        # Clean up
+        rm -rf "$TEMP_DIR"
         
         # Verify installation
         if ! yq --version &> /dev/null; then
