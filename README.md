@@ -29,24 +29,13 @@ cd /home/ubuntu/apps/deployment
 
 3. Log out and back in for Docker group changes to take effect.
 
-4. Set up environment variables for each application:
+4. Start the applications:
 ```bash
-# Set up backend environment
-cd /home/ubuntu/apps/video-summary/backend
-./setup-env.sh
-
-# Set up frontend environment
-cd /home/ubuntu/apps/video-summary/frontend
-./setup-env.sh
-```
-
-5. Start the applications:
-```bash
-cd /home/ubuntu/apps/deployment
+cd /home/ubuntu/apps/video-summary
 docker compose up -d
 ```
 
-or 
+or use the one-liner:
 ```bash
 cd && rm -rf /home/ubuntu/apps/* && git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/deployment && cd /home/ubuntu/apps/deployment && chmod +x ./setup-vm.sh && ./setup-vm.sh && cd && exec bash && cd /home/ubuntu/apps/ && ls
 ```
@@ -61,14 +50,14 @@ groups:
     base_path: /home/ubuntu/apps/video-summary
     apps:
       backend:
-        repo: https://github.com/luisher98/video-summary-backend.git
+        repo: https://github.com/luisher98/video-to-summary-backend.git
         env_file: .env
         port: 5050
         resources:
           cpus: '1'
           memory: 1G
       frontend:
-        repo: https://github.com/luisher98/video-summary-frontend.git
+        repo: https://github.com/luisher98/video-to-summary-frontend.git
         env_file: .env
         port: 3000
         resources:
@@ -88,112 +77,52 @@ groups:
           - ./certbot/www:/var/www/certbot
 ```
 
-Use the `manage-apps.sh` script to manage applications:
+## Environment Variables
 
-```bash
-# List all applications
-./manage-apps.sh list
+Each application manages its own environment variables through GitHub Actions workflows in their respective repositories:
 
-# Add a new application group
-./manage-apps.sh add-group my-app /home/ubuntu/apps/my-app
+- Backend environment setup: [video-to-summary-backend](https://github.com/luisher98/video-to-summary-backend)
+- Frontend environment setup: [video-to-summary-frontend](https://github.com/luisher98/video-to-summary-frontend)
 
-# Add a new application to a group
-./manage-apps.sh add-app my-app service https://github.com/example/service.git
+## Deployment Workflows
 
-# Remove an application group
-./manage-apps.sh remove-group my-app
+This repository contains the following deployment workflows:
 
-# Remove an application from a group
-./manage-apps.sh remove-app my-app service
-```
+1. `deploy-config.yml`: Deploys server configuration changes
+   - Updates server setup
+   - Applies configuration changes
+   - Restarts services
+
+2. `deploy-backend.yml`: Deploys backend application changes
+   - Updates backend code
+   - Rebuilds and restarts backend container
+
+3. `deploy-frontend.yml`: Deploys frontend application changes
+   - Updates frontend code
+   - Rebuilds and restarts frontend container
 
 ## Directory Structure
 
 ```
 /home/ubuntu/apps/
-├── deployment/           # Deployment configuration and scripts
+├── deployment/           # This repository
 │   ├── apps.yaml        # Application configuration
-│   ├── setup-vm.sh      # VM setup script
-│   ├── manage-apps.sh   # Application management script
+│   ├── setup-vm.sh      # Server setup script
 │   ├── docker-compose.yml
 │   └── nginx.conf
-└── video-summary/       # Video summary application
-    ├── backend/         # Backend service
-    │   └── .env        # Backend environment variables
-    └── frontend/        # Frontend service
-        └── .env        # Frontend environment variables
-```
-
-## Environment Variables
-
-Each application has its own `.env` file for configuration:
-
-### Backend (.env)
-```env
-# Server Configuration
-PORT=5050
-NODE_ENV=production
-WEBSITE_HOSTNAME=
-
-# OpenAI Configuration
-OPENAI_API_KEY=your_key_here
-OPENAI_MODEL=gpt-3.5-turbo
-
-# YouTube Configuration
-YOUTUBE_API_KEY=your_key_here
-
-# Azure Storage Configuration
-AZURE_STORAGE_ACCOUNT_NAME=summarystorage
-AZURE_STORAGE_CONNECTION_STRING=your_connection_string
-AZURE_STORAGE_CONTAINER_NAME=summary
-AZURE_TENANT_ID=your_tenant_id
-AZURE_CLIENT_ID=your_client_id
-AZURE_CLIENT_SECRET=your_client_secret
-
-# File Size Limits
-MAX_FILE_SIZE=524288000  # 500MB
-MAX_LOCAL_FILESIZE=209715200  # 200MB
-MAX_LOCAL_FILESIZE_MB=100
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=60000  # 1 minute
-RATE_LIMIT_MAX_REQUESTS=10  # 10 requests per minute
-
-# Temporary Directories
-TEMP_DIR=
-TEMP_VIDEOS_DIR=
-TEMP_AUDIOS_DIR=
-TEMP_SESSIONS_DIR=
-```
-
-### Frontend (.env)
-```env
-# API Configuration
-NEXT_PUBLIC_API_URL=/api
-
-# Azure Storage Configuration
-NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME=summarystorage
-NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME=summary
-NEXT_PUBLIC_AZURE_STORAGE_CONNECTION_STRING=your_connection_string
-
-# Optional YouTube Configuration
-NEXT_PUBLIC_YOUTUBE_API_KEY=your_key_here
+└── video-summary/       # Application directory
+    ├── backend/         # Backend application
+    ├── frontend/        # Frontend application
+    └── nginx/          # Nginx configuration
 ```
 
 ## Security
 
-- Environment variables are stored in `.env` files (not committed to Git)
-- SSL/TLS certificates are managed by Certbot
-- Rate limiting is configured in Nginx
-- Resource limits are set for all containers
-- Health checks monitor service status
-
-## Monitoring
-
-- Container health checks
-- Nginx access and error logs
-- Docker container logs
-- Resource usage monitoring
+- Environment variables are managed through GitHub Secrets
+- Each application repository manages its own secrets
+- SSL/TLS certificates are managed through certbot
+- Docker containers run with limited resources
+- Services are isolated in their own network
 
 ## Contributing
 
