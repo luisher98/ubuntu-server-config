@@ -14,6 +14,9 @@ RUN npm run build
 # Production stage - using nginx to serve static files
 FROM nginx:1.25-alpine
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Copy built app from build stage to nginx's serve directory
 COPY --from=build /app/dist /usr/share/nginx/html
 
@@ -29,6 +32,10 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
 USER nginx
 
 EXPOSE 3000
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
 
 # Use custom nginx config that listens on port 3000
 COPY nginx.conf /etc/nginx/conf.d/default.conf 
