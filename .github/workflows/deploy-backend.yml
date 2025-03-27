@@ -9,6 +9,9 @@ on:
       - 'backend.dockerignore'
       - 'docker-compose.yml'
       - 'nginx.conf'
+      - 'apps.yaml'
+      - 'setup-vm.sh'
+      - 'manage-apps.sh'
 
 jobs:
   deploy:
@@ -24,10 +27,17 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/ubuntu/video-to-summary
+            # Update deployment repository
+            cd /home/ubuntu/apps/deployment
             git pull
             
-            cd /home/ubuntu/deployment
+            # Get backend path from apps.yaml
+            BACKEND_PATH=$(yq e '.groups.video-summary.base_path' apps.yaml)/backend
+            
+            # Update backend repository
+            cd $BACKEND_PATH
             git pull
             
-            docker compose -f /home/ubuntu/deployment/docker-compose.yml up -d --build backend nginx 
+            # Deploy using docker compose
+            cd /home/ubuntu/apps/deployment
+            docker compose -f docker-compose.yml up -d --build backend nginx 

@@ -10,6 +10,9 @@ on:
       - 'frontend-nginx.conf'
       - 'docker-compose.yml'
       - 'nginx.conf'
+      - 'apps.yaml'
+      - 'setup-vm.sh'
+      - 'manage-apps.sh'
 
 jobs:
   deploy:
@@ -25,13 +28,20 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/ubuntu/video-to-summary-app
+            # Update deployment repository
+            cd /home/ubuntu/apps/deployment
             git pull
             
-            cd /home/ubuntu/deployment
+            # Get frontend path from apps.yaml
+            FRONTEND_PATH=$(yq e '.groups.video-summary.base_path' apps.yaml)/frontend
+            
+            # Update frontend repository
+            cd $FRONTEND_PATH
             git pull
             
             # Copy frontend-nginx.conf to the frontend build context
-            cp /home/ubuntu/deployment/frontend-nginx.conf /home/ubuntu/video-to-summary-app/nginx.conf
+            cp /home/ubuntu/apps/deployment/frontend-nginx.conf $FRONTEND_PATH/nginx.conf
             
-            docker compose -f /home/ubuntu/deployment/docker-compose.yml up -d --build frontend nginx 
+            # Deploy using docker compose
+            cd /home/ubuntu/apps/deployment
+            docker compose -f docker-compose.yml up -d --build frontend nginx 
