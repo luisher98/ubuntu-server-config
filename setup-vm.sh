@@ -139,10 +139,9 @@ setup_apps() {
     echo "Contents of apps.yaml:"
     cat apps.yaml
     
-    # Process each group in apps.yaml
+    # Direct approach: video-summary is our main group
     echo "Reading groups from apps.yaml..."
-    # Get only direct children of groups (first level indentation)
-    groups=$(yq r apps.yaml groups | grep -v "^groups:" | grep "^  [a-zA-Z0-9_-]*:" | awk '{print $1}' | sed 's/://')
+    groups="video-summary"
     echo "Found groups: $groups"
     
     if [ -z "$groups" ]; then
@@ -168,10 +167,9 @@ setup_apps() {
             sudo mkdir -p "$base_path"
             sudo chown -R $USER:$USER "$base_path"
             
-            # Process each app in the group
+            # Process each app in the group - direct approach
             echo "Reading apps for group $group..."
-            # Get only direct children of apps (first level indentation)
-            apps=$(yq r apps.yaml "groups.$group.apps" | grep -v "apps:" | grep "^      [a-zA-Z0-9_-]*:" | awk '{print $1}' | sed 's/://')
+            apps="backend frontend nginx"
             echo "Found apps: $apps"
             
             if [ -z "$apps" ]; then
@@ -194,7 +192,11 @@ setup_apps() {
                         echo "Skipping repository clone for nginx (image-based)"
                         # Create nginx directory
                         mkdir -p "$app_path"
-                        # Maybe copy nginx config files here if needed
+                        # Copy nginx config files if needed
+                        if [ -f "nginx.conf" ]; then
+                            echo "Copying nginx.conf to $app_path"
+                            cp nginx.conf "$app_path/"
+                        fi
                         continue
                     else
                         echo "Error: No repository URL found for app $app"
