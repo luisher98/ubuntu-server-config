@@ -13,7 +13,20 @@ fi
 check_yq() {
     if ! command -v yq &> /dev/null; then
         echo "Installing yq..."
-        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        
+        # Get system architecture
+        ARCH=$(uname -m)
+        if [ "$ARCH" = "x86_64" ]; then
+            ARCH="amd64"
+        elif [ "$ARCH" = "aarch64" ]; then
+            ARCH="arm64"
+        else
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+        fi
+        
+        # Download and install yq
+        sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}"
         sudo chmod a+x /usr/local/bin/yq
     fi
 }
