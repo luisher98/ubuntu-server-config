@@ -9,6 +9,61 @@ This repository contains deployment configuration for the video-to-summary appli
 - **Nginx**: Reverse proxy with security headers and optimized configuration
 - **Docker**: Containerized deployment with health checks and security best practices
 
+## Quick Start Guide
+
+If you're setting up on a fresh Ubuntu VM, here are the quick commands to get everything running:
+
+```bash
+# 1. Create directory structure
+mkdir -p /home/ubuntu/apps/video-summary/{backend,frontend,deployment}
+
+# 2. Clone all repositories
+git clone https://github.com/luisher98/video-to-summary.git /home/ubuntu/apps/video-summary/backend
+git clone https://github.com/luisher98/video-to-summary-app.git /home/ubuntu/apps/video-summary/frontend
+git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/video-summary/deployment
+
+# 3. Set up environment variables
+cd /home/ubuntu/apps/video-summary/deployment
+./setup-env.sh
+
+cd /home/ubuntu/apps/video-summary/backend
+./setup-backend-env.sh
+
+cd /home/ubuntu/apps/video-summary/frontend
+./setup-frontend-env.sh
+
+# 4. Copy nginx config
+cp /home/ubuntu/apps/video-summary/deployment/frontend-nginx.conf /home/ubuntu/apps/video-summary/frontend/nginx.conf
+
+# 5. Start services
+cd /home/ubuntu/apps/video-summary/deployment
+docker compose up -d
+
+# 6. Test deployment
+./test-deployment.sh
+```
+
+The application will be available at:
+- Frontend: http://localhost
+- Backend API: http://localhost/api
+
+Useful commands:
+```bash
+# Check service status
+docker compose ps
+
+# View logs
+docker compose logs -f
+
+# Stop all services
+docker compose down
+
+# Rebuild after changes
+docker compose up -d --build
+```
+
+For detailed setup instructions and troubleshooting, continue reading below.
+
 ## Server Setup
 
 The deployment assumes the following folder structure on the server:
