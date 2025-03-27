@@ -133,8 +133,14 @@ setup_apps() {
     
     # Process each group in apps.yaml
     echo "Reading groups from apps.yaml..."
+    # Use yq to get the list of groups
     groups=$(yq r apps.yaml 'groups | keys | .[]')
     echo "Found groups: $groups"
+    
+    if [ -z "$groups" ]; then
+        echo "Error: No groups found in apps.yaml"
+        exit 1
+    fi
     
     for group in $groups; do
         echo "Processing group: $group"
@@ -142,6 +148,11 @@ setup_apps() {
         # Get base path for group
         base_path=$(yq r apps.yaml "groups.$group.base_path")
         echo "Base path for group $group: $base_path"
+        
+        if [ -z "$base_path" ]; then
+            echo "Error: No base_path found for group $group"
+            continue
+        fi
         
         # Create group directory (excluding deployment)
         if [ "$group" != "deployment" ]; then
@@ -151,8 +162,14 @@ setup_apps() {
             
             # Process each app in the group
             echo "Reading apps for group $group..."
+            # Use yq to get the list of apps
             apps=$(yq r apps.yaml "groups.$group.apps | keys | .[]")
             echo "Found apps: $apps"
+            
+            if [ -z "$apps" ]; then
+                echo "Warning: No apps found for group $group"
+                continue
+            fi
             
             for app in $apps; do
                 echo "Processing app: $app"
@@ -162,6 +179,11 @@ setup_apps() {
                 app_path="$base_path/$app"
                 echo "Repository URL: $repo"
                 echo "App path: $app_path"
+                
+                if [ -z "$repo" ]; then
+                    echo "Error: No repository URL found for app $app"
+                    continue
+                fi
                 
                 # Clone repository if it doesn't exist
                 if [ ! -d "$app_path" ]; then
