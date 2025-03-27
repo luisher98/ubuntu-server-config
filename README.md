@@ -27,10 +27,6 @@ exit
 # Log back in to your VM
 
 # 4. Set up environment variables
-cd /home/ubuntu/apps/video-summary/deployment
-chmod +x setup-env.sh
-./setup-env.sh
-
 cd /home/ubuntu/apps/video-summary/backend
 chmod +x setup-backend-env.sh
 ./setup-backend-env.sh
@@ -84,7 +80,6 @@ The deployment assumes the following folder structure on the server:
               ├── frontend.Dockerfile
               ├── nginx.conf
               ├── frontend-nginx.conf
-              ├── setup-env.sh
               ├── setup-backend-env.sh
               ├── setup-frontend-env.sh
               ├── setup-vm.sh
@@ -96,22 +91,9 @@ The deployment assumes the following folder structure on the server:
 
 ## Environment Variables Setup
 
-The deployment requires three separate `.env` files. Each setup script will show you the required format and validate the input. Here's how to set them up:
+The deployment requires two separate `.env` files. Each setup script will show you the required format and validate the input. Here's how to set them up:
 
-1. **Deployment Environment** (`/home/ubuntu/apps/video-summary/deployment/.env`):
-   ```bash
-   cd /home/ubuntu/apps/video-summary/deployment
-   ./setup-env.sh
-   ```
-   Required variables:
-   - NODE_ENV=production
-   - PORT=5000
-   - BACKEND_URL=http://localhost:5000
-   - FRONTEND_URL=http://localhost:3000
-   - JWT_SECRET=<generate_secure_random_string>
-   - API_KEY=<generate_secure_random_string>
-
-2. **Backend Environment** (`/home/ubuntu/apps/video-summary/backend/.env`):
+1. **Backend Environment** (`/home/ubuntu/apps/video-summary/backend/.env`):
    ```bash
    cd /home/ubuntu/apps/video-summary/backend
    ./setup-backend-env.sh
@@ -123,7 +105,7 @@ The deployment requires three separate `.env` files. Each setup script will show
    - AZURE_STORAGE_CONNECTION_STRING=<your_azure_connection_string>
    - Other variables as shown in the script
 
-3. **Frontend Environment** (`/home/ubuntu/apps/video-summary/frontend/.env`):
+2. **Frontend Environment** (`/home/ubuntu/apps/video-summary/frontend/.env`):
    ```bash
    cd /home/ubuntu/apps/video-summary/frontend
    ./setup-frontend-env.sh

@@ -8,51 +8,10 @@ generate_secret() {
     openssl rand -base64 32
 }
 
-# Function to prompt for sensitive information
-prompt_for_sensitive() {
-    local prompt="$1"
-    local var_name="$2"
-    local default="$3"
-    local value
-
-    if [ -n "$default" ]; then
-        read -p "$prompt [$default]: " value
-        value=${value:-$default}
-    else
-        read -p "$prompt: " value
-    fi
-
-    echo "$value"
-}
-
-# Function to validate required variables
-validate_required_vars() {
-    local missing_vars=()
-    while IFS='=' read -r key value; do
-        if [[ $key != \#* ]] && [[ -z $value ]]; then
-            missing_vars+=("$key")
-        fi
-    done < .env
-
-    if [ ${#missing_vars[@]} -ne 0 ]; then
-        echo "Warning: The following required variables are empty:"
-        printf '%s\n' "${missing_vars[@]}"
-        read -p "Do you want to continue anyway? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
-    fi
-}
-
-# Check if .env file exists
+# Check if .env file exists and remove it
 if [ -f .env ]; then
-    echo "Warning: .env file already exists"
-    read -p "Do you want to backup the existing .env file? (y/n): " backup
-    if [ "$backup" = "y" ]; then
-        cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
-        echo "Backup created"
-    fi
+    echo "Removing existing .env file..."
+    rm .env
 fi
 
 echo "Please paste all frontend environment variables at once in the following format:"
@@ -90,8 +49,5 @@ fi
 cat "$temp_file" > .env
 chmod 600 .env
 rm "$temp_file"
-
-# Validate required variables
-validate_required_vars
 
 echo "Frontend environment variables have been set successfully!" 
