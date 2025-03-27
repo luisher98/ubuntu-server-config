@@ -116,7 +116,8 @@ install_packages() {
         gnupg \
         lsb-release \
         git \
-        bc
+        bc \
+        nano
 }
 
 # Install Docker
