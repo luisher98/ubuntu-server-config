@@ -141,8 +141,8 @@ setup_apps() {
     
     # Process each group in apps.yaml
     echo "Reading groups from apps.yaml..."
-    # Use yq to get the list of groups (keys under groups)
-    groups=$(yq r apps.yaml groups | grep -v "^groups:" | grep -v "^$" | awk '{print $1}' | sed 's/://')
+    # Get only direct children of groups (first level indentation)
+    groups=$(yq r apps.yaml groups | grep -v "^groups:" | grep "^  [a-zA-Z0-9_-]*:" | awk '{print $1}' | sed 's/://')
     echo "Found groups: $groups"
     
     if [ -z "$groups" ]; then
@@ -170,8 +170,8 @@ setup_apps() {
             
             # Process each app in the group
             echo "Reading apps for group $group..."
-            # Use yq to get the list of apps (keys under apps)
-            apps=$(yq r apps.yaml "groups.$group.apps" | grep -v "apps:" | grep -v "^$" | awk '{print $1}' | sed 's/://')
+            # Get only direct children of apps (first level indentation)
+            apps=$(yq r apps.yaml "groups.$group.apps" | grep -v "apps:" | grep "^      [a-zA-Z0-9_-]*:" | awk '{print $1}' | sed 's/://')
             echo "Found apps: $apps"
             
             if [ -z "$apps" ]; then
@@ -189,8 +189,17 @@ setup_apps() {
                 echo "App path: $app_path"
                 
                 if [ -z "$repo" ]; then
-                    echo "Error: No repository URL found for app $app"
-                    continue
+                    # Special case for nginx which doesn't have a repo field
+                    if [ "$app" = "nginx" ]; then
+                        echo "Skipping repository clone for nginx (image-based)"
+                        # Create nginx directory
+                        mkdir -p "$app_path"
+                        # Maybe copy nginx config files here if needed
+                        continue
+                    else
+                        echo "Error: No repository URL found for app $app"
+                        continue
+                    fi
                 fi
                 
                 # Clone repository if it doesn't exist
