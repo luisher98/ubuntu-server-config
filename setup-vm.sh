@@ -111,8 +111,13 @@ install_docker() {
 setup_apps() {
     echo "Setting up application groups..."
     
-    # Create base apps directory
-    sudo mkdir -p /home/ubuntu/apps
+    # Create base apps directory and deployment directory
+    sudo mkdir -p /home/ubuntu/apps/deployment
+    
+    # Copy deployment files to the correct location
+    echo "Setting up deployment files..."
+    sudo cp -r ./* /home/ubuntu/apps/deployment/
+    sudo chown -R $USER:$USER /home/ubuntu/apps/deployment
     
     # Process each group in apps.yaml
     yq e '.groups | keys | .[]' apps.yaml | while read -r group; do
@@ -121,29 +126,31 @@ setup_apps() {
         # Get base path for group
         base_path=$(yq e ".groups.$group.base_path" apps.yaml)
         
-        # Create group directory
-        sudo mkdir -p "$base_path"
-        sudo chown -R $USER:$USER "$base_path"
-        
-        # Process each app in the group
-        yq e ".groups.$group.apps | keys | .[]" apps.yaml | while read -r app; do
-            echo "Setting up app: $app"
+        # Create group directory (excluding deployment)
+        if [ "$group" != "deployment" ]; then
+            sudo mkdir -p "$base_path"
+            sudo chown -R $USER:$USER "$base_path"
             
-            # Get app configuration
-            repo=$(yq e ".groups.$group.apps.$app.repo" apps.yaml)
-            app_path="$base_path/$app"
-            
-            # Clone repository if it doesn't exist
-            if [ ! -d "$app_path" ]; then
-                git clone "$repo" "$app_path"
-            fi
-            
-            # Copy setup-env.sh if it exists
-            if [ -f "setup-env.sh" ]; then
-                cp setup-env.sh "$app_path/"
-                chmod +x "$app_path/setup-env.sh"
-            fi
-        done
+            # Process each app in the group
+            yq e ".groups.$group.apps | keys | .[]" apps.yaml | while read -r app; do
+                echo "Setting up app: $app"
+                
+                # Get app configuration
+                repo=$(yq e ".groups.$group.apps.$app.repo" apps.yaml)
+                app_path="$base_path/$app"
+                
+                # Clone repository if it doesn't exist
+                if [ ! -d "$app_path" ]; then
+                    git clone "$repo" "$app_path"
+                fi
+                
+                # Copy setup-env.sh if it exists
+                if [ -f "setup-env.sh" ]; then
+                    cp setup-env.sh "$app_path/"
+                    chmod +x "$app_path/setup-env.sh"
+                fi
+            done
+        fi
     done
 }
 
