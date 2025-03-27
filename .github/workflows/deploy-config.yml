@@ -1,0 +1,45 @@
+name: Deploy Server Configuration
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/deploy-config.yml'
+      - 'apps.yaml'
+      - 'setup-vm.sh'
+      - 'manage-apps.sh'
+      - 'docker-compose.yml'
+      - 'nginx.conf'
+      - 'frontend-nginx.conf'
+      - 'backend.Dockerfile'
+      - 'frontend.Dockerfile'
+      - 'backend.dockerignore'
+      - 'frontend.dockerignore'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Update deployment repository
+            cd /home/ubuntu/apps/deployment
+            git pull
+            
+            # Run setup-vm.sh to apply any configuration changes
+            ./setup-vm.sh
+            
+            # Restart all services to apply changes
+            docker compose -f docker-compose.yml down
+            docker compose -f docker-compose.yml up -d
+            
+            # Verify services are running
+            docker compose -f docker-compose.yml ps 
