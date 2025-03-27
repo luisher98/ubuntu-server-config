@@ -14,15 +14,18 @@ This repository contains deployment configuration for the video-to-summary appli
 If you're setting up on a fresh Ubuntu VM, here are the quick commands to get everything running:
 
 ```bash
-# 1. Create directory structure
-mkdir -p /home/ubuntu/apps/video-summary/{backend,frontend,deployment}
-
-# 2. Clone all repositories
-git clone https://github.com/luisher98/video-to-summary.git /home/ubuntu/apps/video-summary/backend
-git clone https://github.com/luisher98/video-to-summary-app.git /home/ubuntu/apps/video-summary/frontend
+# 1. Clone the deployment repository
 git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/video-summary/deployment
 
-# 3. Set up environment variables
+# 2. Run the VM setup script (this will install Docker, create directories, and clone repositories)
+cd /home/ubuntu/apps/video-summary/deployment
+./setup-vm.sh
+
+# 3. Log out and log back in for Docker group changes to take effect
+exit
+# Log back in to your VM
+
+# 4. Set up environment variables
 cd /home/ubuntu/apps/video-summary/deployment
 ./setup-env.sh
 
@@ -31,9 +34,6 @@ cd /home/ubuntu/apps/video-summary/backend
 
 cd /home/ubuntu/apps/video-summary/frontend
 ./setup-frontend-env.sh
-
-# 4. Copy nginx config
-cp /home/ubuntu/apps/video-summary/deployment/frontend-nginx.conf /home/ubuntu/apps/video-summary/frontend/nginx.conf
 
 # 5. Start services
 cd /home/ubuntu/apps/video-summary/deployment
