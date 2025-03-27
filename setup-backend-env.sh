@@ -1,12 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Exit on error
 set -e
-
-# Function to generate a secure random string
-generate_secret() {
-    openssl rand -base64 32
-}
 
 # Check if .env file exists and remove it
 if [ -f .env ]; then
