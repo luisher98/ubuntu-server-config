@@ -120,44 +120,65 @@ setup_apps() {
     sudo chown -R $USER:$USER /home/ubuntu/apps/deployment
     
     # Process each group in apps.yaml
+    echo "Reading groups from apps.yaml..."
     yq e '.groups | keys | .[]' apps.yaml | while read -r group; do
-        echo "Setting up group: $group"
+        echo "Processing group: $group"
         
         # Get base path for group
         base_path=$(yq e ".groups.$group.base_path" apps.yaml)
+        echo "Base path for group $group: $base_path"
         
         # Create group directory (excluding deployment)
         if [ "$group" != "deployment" ]; then
+            echo "Creating group directory: $base_path"
             sudo mkdir -p "$base_path"
             sudo chown -R $USER:$USER "$base_path"
             
             # Process each app in the group
+            echo "Reading apps for group $group..."
             yq e ".groups.$group.apps | keys | .[]" apps.yaml | while read -r app; do
-                echo "Setting up app: $app"
+                echo "Processing app: $app"
                 
                 # Get app configuration
                 repo=$(yq e ".groups.$group.apps.$app.repo" apps.yaml)
                 app_path="$base_path/$app"
+                echo "Repository URL: $repo"
+                echo "App path: $app_path"
                 
                 # Clone repository if it doesn't exist
                 if [ ! -d "$app_path" ]; then
+                    echo "Cloning repository: $repo"
                     git clone "$repo" "$app_path"
+                    if [ $? -eq 0 ]; then
+                        echo "Successfully cloned $repo"
+                    else
+                        echo "Failed to clone $repo"
+                        exit 1
+                    fi
+                else
+                    echo "Repository already exists: $app_path"
                 fi
                 
                 # Copy setup-env.sh if it exists
                 if [ -f "setup-env.sh" ]; then
+                    echo "Copying setup-env.sh to $app_path"
                     cp setup-env.sh "$app_path/"
                     chmod +x "$app_path/setup-env.sh"
                 fi
                 
                 # Create .env file if it doesn't exist
                 if [ ! -f "$app_path/.env" ]; then
+                    echo "Creating .env file for $app"
                     touch "$app_path/.env"
                     chmod 600 "$app_path/.env"
                 fi
+                
+                echo "App setup complete: $app"
             done
         fi
     done
+    
+    echo "All applications have been set up"
 }
 
 # Main script
