@@ -26,8 +26,27 @@ check_yq() {
         fi
         
         # Download and install yq
-        sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}"
-        sudo chmod a+x /usr/local/bin/yq
+        echo "Downloading yq for ${ARCH}..."
+        if ! sudo curl -L "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}" -o /usr/local/bin/yq; then
+            echo "Error: Failed to download yq"
+            exit 1
+        fi
+        
+        echo "Setting executable permissions..."
+        if ! sudo chmod a+x /usr/local/bin/yq; then
+            echo "Error: Failed to set executable permissions"
+            exit 1
+        fi
+        
+        # Verify installation
+        if ! yq --version &> /dev/null; then
+            echo "Error: Failed to verify yq installation"
+            exit 1
+        fi
+        
+        echo "yq installed successfully"
+    else
+        echo "yq is already installed"
     fi
 }
 
