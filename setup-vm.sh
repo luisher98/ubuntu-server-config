@@ -149,6 +149,12 @@ setup_apps() {
                     cp setup-env.sh "$app_path/"
                     chmod +x "$app_path/setup-env.sh"
                 fi
+                
+                # Create .env file if it doesn't exist
+                if [ ! -f "$app_path/.env" ]; then
+                    touch "$app_path/.env"
+                    chmod 600 "$app_path/.env"
+                fi
             done
         fi
     done
