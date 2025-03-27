@@ -65,7 +65,7 @@ echo "Creating new frontend .env file..."
 # Basic configuration
 cat > .env << EOL
 # API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:5050
+NEXT_PUBLIC_API_URL=/api
 NEXT_PUBLIC_API_VERSION=v1
 
 # Azure Storage Configuration
