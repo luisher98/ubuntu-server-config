@@ -1,0 +1,46 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/deploy-frontend.yml'
+      - 'frontend.Dockerfile'
+      - 'frontend.dockerignore'
+      - 'frontend-nginx.conf'
+      - 'docker-compose.yml'
+      - 'nginx.conf'
+      - 'apps.yaml'
+      - 'setup-vm.sh'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Update deployment repository
+            cd /home/ubuntu/apps/deployment
+            git pull
+            
+            # Get frontend path from apps.yaml
+            FRONTEND_PATH=$(yq e '.groups.video-summary.base_path' apps.yaml)/frontend
+            
+            # Update frontend repository
+            cd $FRONTEND_PATH
+            git pull
+            
+            # Copy frontend-nginx.conf to the frontend build context
+            cp /home/ubuntu/apps/deployment/frontend-nginx.conf $FRONTEND_PATH/nginx.conf
+            
+            # Deploy using docker compose
+            cd /home/ubuntu/apps/deployment
+            docker compose -f docker-compose.yml up -d --build frontend nginx 
