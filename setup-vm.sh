@@ -14,42 +14,24 @@ check_yq() {
     if ! command -v yq &> /dev/null; then
         echo "Installing yq..."
         
-        # Get system architecture
-        ARCH=$(uname -m)
-        if [ "$ARCH" = "x86_64" ]; then
-            ARCH="amd64"
-        elif [ "$ARCH" = "aarch64" ]; then
-            ARCH="arm64"
-        else
-            echo "Unsupported architecture: $ARCH"
-            exit 1
+        # Install Go if not installed
+        if ! command -v go &> /dev/null; then
+            echo "Installing Go..."
+            sudo apt-get update
+            sudo apt-get install -y golang-go
         fi
         
-        # Create temporary directory for download
-        TEMP_DIR=$(mktemp -d)
-        echo "Created temporary directory: $TEMP_DIR"
-        
-        # Download yq
-        echo "Downloading yq for ${ARCH}..."
-        if ! curl -L "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}" -o "$TEMP_DIR/yq"; then
-            echo "Error: Failed to download yq"
-            rm -rf "$TEMP_DIR"
-            exit 1
-        fi
-        
-        # Make the downloaded file executable
-        chmod +x "$TEMP_DIR/yq"
-        
-        # Install yq using install command
-        echo "Installing yq..."
-        if ! sudo install -m 755 "$TEMP_DIR/yq" /usr/local/bin/yq; then
+        # Install yq using go install
+        echo "Installing yq using go install..."
+        if ! go install github.com/mikefarah/yq/v4@latest; then
             echo "Error: Failed to install yq"
-            rm -rf "$TEMP_DIR"
             exit 1
         fi
         
-        # Clean up
-        rm -rf "$TEMP_DIR"
+        # Create symlink to /usr/local/bin
+        if [ ! -f "/usr/local/bin/yq" ]; then
+            sudo ln -s "$HOME/go/bin/yq" /usr/local/bin/yq
+        fi
         
         # Verify installation
         if ! yq --version &> /dev/null; then
