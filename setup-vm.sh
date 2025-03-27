@@ -4,7 +4,7 @@
 set -e
 
 # Log file
-LOG_FILE="/var/log/vm-setup.log"
+LOG_FILE="$HOME/vm-setup.log"
 exec 1> >(tee -a "$LOG_FILE")
 exec 2> >(tee -a "$LOG_FILE" >&2)
 
@@ -98,8 +98,8 @@ validate_config() {
     # Backup config file
     backup_file "apps.yaml"
     
-    # Validate YAML syntax
-    if ! yq eval '.' apps.yaml > /dev/null 2>&1; then
+    # Validate YAML syntax using Python
+    if ! python3 -c "import yaml; yaml.safe_load(open('apps.yaml'))" > /dev/null 2>&1; then
         log "Error: Invalid YAML syntax in apps.yaml"
         exit 1
     fi
