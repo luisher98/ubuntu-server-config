@@ -111,12 +111,20 @@ install_docker() {
 setup_apps() {
     echo "Setting up application groups..."
     
-    # Create base apps directory
-    sudo mkdir -p /home/ubuntu/apps
+    # Create base apps directory and deployment directory
+    sudo mkdir -p /home/ubuntu/apps/deployment
     
-    # Copy deployment files to the correct location
+    # Copy deployment files to the correct location if they don't exist
     echo "Setting up deployment files..."
-    sudo cp -r ./* /home/ubuntu/apps/deployment/
+    for file in ./*; do
+        if [ -f "$file" ] || [ -d "$file" ]; then
+            filename=$(basename "$file")
+            if [ ! -f "/home/ubuntu/apps/deployment/$filename" ] && [ ! -d "/home/ubuntu/apps/deployment/$filename" ]; then
+                echo "Copying $filename to deployment directory"
+                sudo cp -r "$file" "/home/ubuntu/apps/deployment/"
+            fi
+        fi
+    done
     sudo chown -R $USER:$USER /home/ubuntu/apps/deployment
     
     # Debug: Print the contents of apps.yaml
