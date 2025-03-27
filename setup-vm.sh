@@ -107,22 +107,35 @@ install_docker() {
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 }
 
-# Parse YAML file and convert to shell variables
-parse_yaml() {
-   local prefix=$2
-   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-   sed -ne "s|^\($s\):|\1|" \
-        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-   awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-      }
-   }'
+# Parse YAML using Python
+parse_yaml_with_python() {
+    python3 -c "
+import yaml
+import sys
+import json
+try:
+    data = yaml.safe_load(open('$1'))
+    if '$2' == 'groups':
+        if 'groups' in data:
+            print(' '.join(data['groups'].keys()))
+    elif '$2' == 'apps':
+        group = '$3'
+        if 'groups' in data and group in data['groups'] and 'apps' in data['groups'][group]:
+            print(' '.join(data['groups'][group]['apps'].keys()))
+    elif '$2' == 'repo':
+        group = '$3'
+        app = '$4'
+        if 'groups' in data and group in data['groups'] and 'apps' in data['groups'][group] and app in data['groups'][group]['apps']:
+            repo = data['groups'][group]['apps'][app].get('repo', '')
+            print(repo)
+    elif '$2' == 'base_path':
+        group = '$3'
+        if 'groups' in data and group in data['groups']:
+            print(data['groups'][group].get('base_path', ''))
+except Exception as e:
+    print('Error parsing YAML: ' + str(e), file=sys.stderr)
+    sys.exit(1)
+"
 }
 
 # Setup application groups
@@ -157,18 +170,18 @@ setup_apps() {
     echo "Contents of apps.yaml:"
     cat apps.yaml
     
-    # Parse the YAML file into shell variables
-    echo "Parsing YAML file..."
-    eval $(parse_yaml apps.yaml "CONFIG_")
+    # Make sure PyYAML is installed
+    echo "Checking for PyYAML..."
+    if ! python3 -c "import yaml" &> /dev/null; then
+        echo "Installing PyYAML..."
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        sudo pip3 install pyyaml
+    fi
     
-    # Extract groups from the CONFIG_ variables
-    echo "Extracting application groups..."
-    groups=""
-    for var in $(compgen -v | grep "^CONFIG_groups_" | grep -v "_base_path$" | grep -v "_apps_"); do
-        group=${var#CONFIG_groups_}
-        groups="$groups $group"
-    done
-    
+    # Parse the YAML file using Python
+    echo "Parsing YAML file with Python..."
+    groups=$(parse_yaml_with_python apps.yaml groups)
     echo "Found groups: $groups"
     
     if [ -z "$groups" ]; then
@@ -180,8 +193,7 @@ setup_apps() {
         echo "Processing group: $group"
         
         # Get base path for group
-        base_path_var="CONFIG_groups_${group}_base_path"
-        base_path=${!base_path_var}
+        base_path=$(parse_yaml_with_python apps.yaml base_path "$group")
         echo "Base path for group $group: $base_path"
         
         if [ -z "$base_path" ]; then
@@ -195,14 +207,9 @@ setup_apps() {
             sudo mkdir -p "$base_path"
             sudo chown -R $USER:$USER "$base_path"
             
-            # Extract apps for this group from CONFIG_ variables
+            # Get apps for this group
             echo "Reading apps for group $group..."
-            apps=""
-            for var in $(compgen -v | grep "^CONFIG_groups_${group}_apps_" | grep -v "_repo$" | grep -v "_env_file$" | grep -v "_port$" | grep -v "_resources$" | grep -v "_image$" | grep -v "_ports$" | grep -v "_volumes$"); do
-                app=${var#CONFIG_groups_${group}_apps_}
-                apps="$apps $app"
-            done
-            
+            apps=$(parse_yaml_with_python apps.yaml apps "$group")
             echo "Found apps: $apps"
             
             if [ -z "$apps" ]; then
@@ -214,8 +221,7 @@ setup_apps() {
                 echo "Processing app: $app"
                 
                 # Get app configuration
-                repo_var="CONFIG_groups_${group}_apps_${app}_repo"
-                repo=${!repo_var}
+                repo=$(parse_yaml_with_python apps.yaml repo "$group" "$app")
                 app_path="$base_path/$app"
                 echo "Repository URL: $repo"
                 echo "App path: $app_path"
