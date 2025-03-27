@@ -141,8 +141,8 @@ setup_apps() {
     
     # Process each group in apps.yaml
     echo "Reading groups from apps.yaml..."
-    # Use yq to get the list of groups
-    groups=$(yq r apps.yaml 'groups.*.name')
+    # Use yq to get the list of groups (keys under groups)
+    groups=$(yq r apps.yaml 'groups | keys | .[]')
     echo "Found groups: $groups"
     
     if [ -z "$groups" ]; then
@@ -170,8 +170,8 @@ setup_apps() {
             
             # Process each app in the group
             echo "Reading apps for group $group..."
-            # Use yq to get the list of apps
-            apps=$(yq r apps.yaml "groups.$group.apps.*.name")
+            # Use yq to get the list of apps (keys under apps)
+            apps=$(yq r apps.yaml "groups.$group.apps | keys | .[]")
             echo "Found apps: $apps"
             
             if [ -z "$apps" ]; then
