@@ -2,17 +2,16 @@ version: '3.8'
 
 services:
   backend:
-    build:
-      context: /home/ubuntu/apps/video-summary/backend
+    build: 
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: video-summary-backend
-    restart: unless-stopped
-    env_file: /home/ubuntu/apps/video-summary/backend/.env
-    volumes:
-      - /home/ubuntu/apps/video-summary/backend:/app
-      - /app/node_modules
+    env_file: ./backend/.env
     ports:
       - "5050:5050"
+    volumes:
+      - ./backend:/app
+    networks:
+      - video-summary-network
     deploy:
       resources:
         limits:
@@ -21,30 +20,30 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
-      context: /home/ubuntu/apps/video-summary/frontend
+      context: ./frontend
       dockerfile: Dockerfile
-    container_name: video-summary-frontend
-    restart: unless-stopped
-    env_file: /home/ubuntu/apps/video-summary/frontend/.env
-    volumes:
-      - /home/ubuntu/apps/video-summary/frontend:/app
-      - /app/node_modules
+    env_file: ./frontend/.env
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - video-summary-network
     deploy:
       resources:
         limits:
@@ -53,29 +52,29 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   nginx:
     image: nginx:alpine
-    container_name: video-summary-nginx
-    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - /home/ubuntu/apps/video-summary/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /home/ubuntu/apps/video-summary/certbot/conf:/etc/letsencrypt
-      - /home/ubuntu/apps/video-summary/certbot/www:/var/www/certbot
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    networks:
+      - video-summary-network
     deploy:
       resources:
         limits:
@@ -84,21 +83,18 @@ services:
         reservations:
           cpus: '0.2'
           memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
-    depends_on:
-      - backend
-      - frontend
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
-  default:
+  video-summary-network:
     driver: bridge 

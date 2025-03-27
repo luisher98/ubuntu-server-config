@@ -337,6 +337,12 @@ setup_apps() {
                 
                 log "App setup complete: $app"
             done
+            
+            # Copy docker-compose.yml to the group directory
+            if [ -f "docker-compose.yml" ]; then
+                log "Copying docker-compose.yml to $base_path"
+                cp docker-compose.yml "$base_path/"
+            fi
         fi
     done
     
