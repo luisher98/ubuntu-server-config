@@ -111,8 +111,8 @@ install_docker() {
 setup_apps() {
     echo "Setting up application groups..."
     
-    # Create base apps directory and deployment directory
-    sudo mkdir -p /home/ubuntu/apps/deployment
+    # Create base apps directory
+    sudo mkdir -p /home/ubuntu/apps
     
     # Copy deployment files to the correct location
     echo "Setting up deployment files..."
