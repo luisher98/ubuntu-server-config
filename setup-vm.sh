@@ -107,6 +107,24 @@ install_docker() {
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 }
 
+# Parse YAML file and convert to shell variables
+parse_yaml() {
+   local prefix=$2
+   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+   sed -ne "s|^\($s\):|\1|" \
+        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+   awk -F$fs '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+      }
+   }'
+}
+
 # Setup application groups
 setup_apps() {
     echo "Setting up application groups..."
@@ -139,9 +157,18 @@ setup_apps() {
     echo "Contents of apps.yaml:"
     cat apps.yaml
     
-    # Direct approach: video-summary is our main group
-    echo "Reading groups from apps.yaml..."
-    groups="video-summary"
+    # Parse the YAML file into shell variables
+    echo "Parsing YAML file..."
+    eval $(parse_yaml apps.yaml "CONFIG_")
+    
+    # Extract groups from the CONFIG_ variables
+    echo "Extracting application groups..."
+    groups=""
+    for var in $(compgen -v | grep "^CONFIG_groups_" | grep -v "_base_path$" | grep -v "_apps_"); do
+        group=${var#CONFIG_groups_}
+        groups="$groups $group"
+    done
+    
     echo "Found groups: $groups"
     
     if [ -z "$groups" ]; then
@@ -153,7 +180,8 @@ setup_apps() {
         echo "Processing group: $group"
         
         # Get base path for group
-        base_path=$(yq r apps.yaml "groups.$group.base_path")
+        base_path_var="CONFIG_groups_${group}_base_path"
+        base_path=${!base_path_var}
         echo "Base path for group $group: $base_path"
         
         if [ -z "$base_path" ]; then
@@ -167,9 +195,14 @@ setup_apps() {
             sudo mkdir -p "$base_path"
             sudo chown -R $USER:$USER "$base_path"
             
-            # Process each app in the group - direct approach
+            # Extract apps for this group from CONFIG_ variables
             echo "Reading apps for group $group..."
-            apps="backend frontend nginx"
+            apps=""
+            for var in $(compgen -v | grep "^CONFIG_groups_${group}_apps_" | grep -v "_repo$" | grep -v "_env_file$" | grep -v "_port$" | grep -v "_resources$" | grep -v "_image$" | grep -v "_ports$" | grep -v "_volumes$"); do
+                app=${var#CONFIG_groups_${group}_apps_}
+                apps="$apps $app"
+            done
+            
             echo "Found apps: $apps"
             
             if [ -z "$apps" ]; then
@@ -181,7 +214,8 @@ setup_apps() {
                 echo "Processing app: $app"
                 
                 # Get app configuration
-                repo=$(yq r apps.yaml "groups.$group.apps.$app.repo")
+                repo_var="CONFIG_groups_${group}_apps_${app}_repo"
+                repo=${!repo_var}
                 app_path="$base_path/$app"
                 echo "Repository URL: $repo"
                 echo "App path: $app_path"
