@@ -23,14 +23,14 @@ groups:
     base_path: /home/ubuntu/apps/video-summary
     apps:
       backend:
-        repo: https://github.com/luisher98/video-summary-backend.git
+        repo: https://github.com/luisher98/video-to-summary-backend.git
         env_file: .env
         port: 5050
         resources:
           cpus: '1'
           memory: 1G
       frontend:
-        repo: https://github.com/luisher98/video-summary-frontend.git
+        repo: https://github.com/luisher98/video-to-summary-frontend.git
         env_file: .env
         port: 3000
         resources:
