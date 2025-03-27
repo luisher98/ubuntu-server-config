@@ -16,28 +16,59 @@ settings:
       reservations:
         cpus: '0.2'
         memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 # Application groups
 groups:
   video-summary:
     base_path: /home/ubuntu/apps/video-summary
+    network: video-summary-network
     apps:
       backend:
         repo: https://github.com/luisher98/video-to-summary-backend.git
+        version: main
         env_file: .env
         port: 5050
         resources:
           cpus: '1'
           memory: 1G
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+        restart: unless-stopped
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
       frontend:
         repo: https://github.com/luisher98/video-to-summary-frontend.git
+        version: main
         env_file: .env
         port: 3000
         resources:
           cpus: '0.5'
           memory: 512M
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:3000"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+        restart: unless-stopped
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
       nginx:
         image: nginx:alpine
+        version: latest
         ports:
           - "80:80"
           - "443:443"
@@ -48,15 +79,39 @@ groups:
           - ./nginx.conf:/etc/nginx/nginx.conf:ro
           - ./certbot/conf:/etc/letsencrypt
           - ./certbot/www:/var/www/certbot
+        healthcheck:
+          test: ["CMD", "nginx", "-t"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+        restart: unless-stopped
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
 
 # Example of another application group
 # another-app:
 #   base_path: /home/ubuntu/apps/another-app
+#   network: another-app-network
 #   apps:
 #     service:
 #       repo: https://github.com/example/another-app.git
+#       version: main
 #       env_file: .env
 #       port: 8080
 #       resources:
 #         cpus: '0.5'
-#         memory: 512M 
+#         memory: 512M
+#       healthcheck:
+#         test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+#         interval: 30s
+#         timeout: 10s
+#         retries: 3
+#       restart: unless-stopped
+#       logging:
+#         driver: "json-file"
+#         options:
+#           max-size: "10m"
+#           max-file: "3" 
