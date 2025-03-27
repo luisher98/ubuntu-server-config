@@ -5,8 +5,9 @@ This repository contains deployment configuration for the video-to-summary appli
 ## Components
 
 - **Backend**: Express.js + TypeScript application ([source](https://github.com/luisher98/video-to-summary))
-- **Frontend**: Web application ([source](https://github.com/luisher98/video-to-summary-app))
-- **Nginx**: Reverse proxy to route traffic between services
+- **Frontend**: Next.js web application ([source](https://github.com/luisher98/video-to-summary-app))
+- **Nginx**: Reverse proxy with security headers and optimized configuration
+- **Docker**: Containerized deployment with health checks and security best practices
 
 ## Server Setup
 
@@ -43,10 +44,13 @@ The deployment assumes the following folder structure on the server:
    git clone <this-repo-url> /home/ubuntu/apps/video-summary/deployment
    ```
 
-3. Create a `.env` file from the example (optional):
+3. Set up environment variables:
    ```bash
-   cp /home/ubuntu/apps/video-summary/deployment/.env.example /home/ubuntu/apps/video-summary/deployment/.env
-   # Edit with your actual configuration values
+   cd /home/ubuntu/apps/video-summary/backend
+   ./setup-backend-env.sh
+   
+   cd /home/ubuntu/apps/video-summary/frontend
+   ./setup-frontend-env.sh
    ```
 
 4. Copy the frontend nginx config to the frontend repo:
@@ -59,6 +63,22 @@ The deployment assumes the following folder structure on the server:
    cd /home/ubuntu/apps/video-summary/deployment
    docker compose up -d
    ```
+
+## Security Features
+
+- All containers run as non-root users
+- Nginx configured with security headers:
+  - X-Content-Type-Options
+  - X-XSS-Protection
+  - X-Frame-Options
+  - Referrer-Policy
+  - Content-Security-Policy
+  - Strict-Transport-Security
+- Environment variables with validation
+- Secure file permissions (600) for .env files
+- No direct exposure of internal ports
+- Rate limiting configured
+- Input validation for API keys and connection strings
 
 ## CI/CD Setup
 
@@ -89,9 +109,26 @@ To manually deploy updates:
    docker compose up -d --build
    ```
 
+## Monitoring and Health Checks
+
+All services include health checks:
+- Backend: Checks `/health` endpoint
+- Frontend: Checks root endpoint
+- Nginx: Validates configuration
+
+To check service status:
+```bash
+docker compose ps
+```
+
+To view logs:
+```bash
+docker compose logs -f [service_name]
+```
+
 ## Troubleshooting
 
-If you encounter issues with Docker Compose commands:
+### Docker Compose Issues
 
 1. Make sure you're using Docker Compose v2:
    ```bash
@@ -113,9 +150,64 @@ If you encounter issues with Docker Compose commands:
    docker compose logs
    ```
 
-## Security
+### Environment Variables
 
-- Only the Nginx container exposes an external port (80)
-- All services run on an internal Docker network
-- Application containers run as non-root users
-- Security headers are set in Nginx configuration
+1. If you need to update environment variables:
+   ```bash
+   cd /home/ubuntu/apps/video-summary/backend
+   ./setup-backend-env.sh
+   
+   cd /home/ubuntu/apps/video-summary/frontend
+   ./setup-frontend-env.sh
+   ```
+
+2. After updating environment variables, restart the services:
+   ```bash
+   docker compose restart
+   ```
+
+### Nginx Issues
+
+1. Check Nginx configuration:
+   ```bash
+   docker compose exec nginx nginx -t
+   ```
+
+2. View Nginx logs:
+   ```bash
+   docker compose logs nginx
+   ```
+
+3. Check Nginx access logs:
+   ```bash
+   docker compose exec nginx tail -f /var/log/nginx/access.log
+   ```
+
+## Performance Optimization
+
+- Gzip compression enabled for static files
+- Proxy buffering configured for better performance
+- Optimized Nginx configuration for static file serving
+- Health checks to ensure service availability
+
+## Backup and Recovery
+
+1. Environment files are automatically backed up when updated:
+   - `.env.backup.YYYYMMDD_HHMMSS`
+
+2. To restore from backup:
+   ```bash
+   cp .env.backup.YYYYMMDD_HHMMSS .env
+   ```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
