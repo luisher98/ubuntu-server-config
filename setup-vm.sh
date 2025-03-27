@@ -111,20 +111,28 @@ install_docker() {
 setup_apps() {
     echo "Setting up application groups..."
     
-    # Create base apps directory and deployment directory
-    sudo mkdir -p /home/ubuntu/apps/deployment
+    # Get the current directory
+    CURRENT_DIR=$(pwd)
+    echo "Current directory: $CURRENT_DIR"
+    
+    # Create base apps directory
+    sudo mkdir -p /home/ubuntu/apps
     
     # Copy deployment files to the correct location if they don't exist
     echo "Setting up deployment files..."
-    for file in ./*; do
-        if [ -f "$file" ] || [ -d "$file" ]; then
-            filename=$(basename "$file")
-            if [ ! -f "/home/ubuntu/apps/deployment/$filename" ] && [ ! -d "/home/ubuntu/apps/deployment/$filename" ]; then
-                echo "Copying $filename to deployment directory"
-                sudo cp -r "$file" "/home/ubuntu/apps/deployment/"
+    if [ "$CURRENT_DIR" != "/home/ubuntu/apps/deployment" ]; then
+        for file in ./*; do
+            if [ -f "$file" ] || [ -d "$file" ]; then
+                filename=$(basename "$file")
+                if [ ! -f "/home/ubuntu/apps/deployment/$filename" ] && [ ! -d "/home/ubuntu/apps/deployment/$filename" ]; then
+                    echo "Copying $filename to deployment directory"
+                    sudo cp -r "$file" "/home/ubuntu/apps/deployment/"
+                fi
             fi
-        fi
-    done
+        done
+    else
+        echo "Already in deployment directory, skipping file copy"
+    fi
     sudo chown -R $USER:$USER /home/ubuntu/apps/deployment
     
     # Debug: Print the contents of apps.yaml
