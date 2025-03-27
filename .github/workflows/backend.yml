@@ -1,0 +1,114 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+      - 'docker-compose.yml'
+      - 'nginx/nginx.conf'
+      - 'apps.yaml'
+      - 'setup-vm.sh'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create .env file
+        run: |
+          cat << EOF > backend/.env
+          # Server Configuration
+          PORT=${{ secrets.BACKEND_PORT }}
+          NODE_ENV=${{ secrets.BACKEND_NODE_ENV }}
+          WEBSITE_HOSTNAME=${{ secrets.BACKEND_WEBSITE_HOSTNAME }}
+          
+          # OpenAI Configuration
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL=${{ secrets.OPENAI_MODEL }}
+          
+          # YouTube Configuration
+          YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}
+          
+          # Azure Storage Configuration
+          AZURE_STORAGE_AUTH_TYPE=${{ secrets.AZURE_STORAGE_AUTH_TYPE }}
+          AZURE_STORAGE_ACCOUNT_NAME=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+          AZURE_STORAGE_CONNECTION_STRING=${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER_NAME=${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
+          AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          
+          # File Size Limits
+          MAX_FILE_SIZE=${{ secrets.MAX_FILE_SIZE }}
+          MAX_LOCAL_FILESIZE=${{ secrets.MAX_LOCAL_FILESIZE }}
+          MAX_LOCAL_FILESIZE_MB=${{ secrets.MAX_LOCAL_FILESIZE_MB }}
+          
+          # Rate Limiting
+          RATE_LIMIT_WINDOW_MS=${{ secrets.RATE_LIMIT_WINDOW_MS }}
+          RATE_LIMIT_MAX_REQUESTS=${{ secrets.RATE_LIMIT_MAX_REQUESTS }}
+          
+          # Temporary Directories
+          TEMP_DIR=${{ secrets.TEMP_DIR }}
+          TEMP_VIDEOS_DIR=${{ secrets.TEMP_VIDEOS_DIR }}
+          TEMP_AUDIOS_DIR=${{ secrets.TEMP_AUDIOS_DIR }}
+          TEMP_SESSIONS_DIR=${{ secrets.TEMP_SESSIONS_DIR }}
+          
+          # YouTube cookies
+          YOUTUBE_COOKIES=${{ secrets.YOUTUBE_COOKIES }}
+          YOUTUBE_COOKIES_COPY=${{ secrets.YOUTUBE_COOKIES_COPY }}
+          EOF
+        env:
+          BACKEND_PORT: ${{ secrets.BACKEND_PORT }}
+          BACKEND_NODE_ENV: ${{ secrets.BACKEND_NODE_ENV }}
+          BACKEND_WEBSITE_HOSTNAME: ${{ secrets.BACKEND_WEBSITE_HOSTNAME }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          AZURE_STORAGE_AUTH_TYPE: ${{ secrets.AZURE_STORAGE_AUTH_TYPE }}
+          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          MAX_FILE_SIZE: ${{ secrets.MAX_FILE_SIZE }}
+          MAX_LOCAL_FILESIZE: ${{ secrets.MAX_LOCAL_FILESIZE }}
+          MAX_LOCAL_FILESIZE_MB: ${{ secrets.MAX_LOCAL_FILESIZE_MB }}
+          RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
+          RATE_LIMIT_MAX_REQUESTS: ${{ secrets.RATE_LIMIT_MAX_REQUESTS }}
+          TEMP_DIR: ${{ secrets.TEMP_DIR }}
+          TEMP_VIDEOS_DIR: ${{ secrets.TEMP_VIDEOS_DIR }}
+          TEMP_AUDIOS_DIR: ${{ secrets.TEMP_AUDIOS_DIR }}
+          TEMP_SESSIONS_DIR: ${{ secrets.TEMP_SESSIONS_DIR }}
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+          YOUTUBE_COOKIES_COPY: ${{ secrets.YOUTUBE_COOKIES_COPY }}
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Update deployment repository
+            cd /home/ubuntu/apps/deployment
+            git pull
+            
+            # Get backend path from apps.yaml
+            BACKEND_PATH=$(yq e '.groups.video-summary.base_path' apps.yaml)/backend
+            
+            # Update backend repository
+            cd $BACKEND_PATH
+            git pull
+            
+            # Deploy using docker compose
+            cd /home/ubuntu/apps/deployment
+            docker compose -f docker-compose.yml up -d --build backend nginx 
