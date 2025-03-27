@@ -47,7 +47,7 @@ else
 fi
 
 # Download and install Docker Compose plugin
-sudo curl -SL "https://github.com/docker/compose/releases/download/v2.34.0/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose
+sudo curl -SL "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Add current user to docker group
@@ -66,9 +66,19 @@ git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/app
 # Copy frontend nginx config
 cp /home/ubuntu/apps/video-summary/deployment/frontend-nginx.conf /home/ubuntu/apps/video-summary/frontend/nginx.conf
 
-# Create .env file from example
-cp /home/ubuntu/apps/video-summary/deployment/.env.example /home/ubuntu/apps/video-summary/deployment/.env
+# Copy environment setup scripts
+cp /home/ubuntu/apps/video-summary/deployment/setup-backend-env.sh /home/ubuntu/apps/video-summary/backend/
+cp /home/ubuntu/apps/video-summary/deployment/setup-frontend-env.sh /home/ubuntu/apps/video-summary/frontend/
+
+# Make scripts executable
+chmod +x /home/ubuntu/apps/video-summary/backend/setup-backend-env.sh
+chmod +x /home/ubuntu/apps/video-summary/frontend/setup-frontend-env.sh
 
 echo "Setup complete! Please log out and log back in for docker group changes to take effect."
-echo "After logging back in, you can start the deployment with:"
-echo "cd /home/ubuntu/apps/video-summary/deployment && docker compose up -d" 
+echo "After logging back in, you can:"
+echo "1. Set up backend environment:"
+echo "   cd /home/ubuntu/apps/video-summary/backend && ./setup-backend-env.sh"
+echo "2. Set up frontend environment:"
+echo "   cd /home/ubuntu/apps/video-summary/frontend && ./setup-frontend-env.sh"
+echo "3. Start the deployment:"
+echo "   cd /home/ubuntu/apps/video-summary/deployment && docker compose up -d" 
