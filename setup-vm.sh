@@ -32,6 +32,24 @@ echo \
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Create Docker CLI plugins directory
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+
+# Get system architecture
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+    ARCH="x86_64"
+elif [ "$ARCH" = "aarch64" ]; then
+    ARCH="aarch64"
+else
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+fi
+
+# Download and install Docker Compose plugin
+sudo curl -SL "https://github.com/docker/compose/releases/download/v2.34.0/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
 # Add current user to docker group
 sudo usermod -aG docker $USER
 
