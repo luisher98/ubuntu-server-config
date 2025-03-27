@@ -142,7 +142,7 @@ setup_apps() {
     # Process each group in apps.yaml
     echo "Reading groups from apps.yaml..."
     # Use yq to get the list of groups
-    groups=$(yq e '.groups | keys | .[]' apps.yaml)
+    groups=$(yq r apps.yaml 'groups.*.name')
     echo "Found groups: $groups"
     
     if [ -z "$groups" ]; then
@@ -154,7 +154,7 @@ setup_apps() {
         echo "Processing group: $group"
         
         # Get base path for group
-        base_path=$(yq e ".groups.$group.base_path" apps.yaml)
+        base_path=$(yq r apps.yaml "groups.$group.base_path")
         echo "Base path for group $group: $base_path"
         
         if [ -z "$base_path" ]; then
@@ -171,7 +171,7 @@ setup_apps() {
             # Process each app in the group
             echo "Reading apps for group $group..."
             # Use yq to get the list of apps
-            apps=$(yq e ".groups.$group.apps | keys | .[]" apps.yaml)
+            apps=$(yq r apps.yaml "groups.$group.apps.*.name")
             echo "Found apps: $apps"
             
             if [ -z "$apps" ]; then
@@ -183,7 +183,7 @@ setup_apps() {
                 echo "Processing app: $app"
                 
                 # Get app configuration
-                repo=$(yq e ".groups.$group.apps.$app.repo" apps.yaml)
+                repo=$(yq r apps.yaml "groups.$group.apps.$app.repo")
                 app_path="$base_path/$app"
                 echo "Repository URL: $repo"
                 echo "App path: $app_path"
