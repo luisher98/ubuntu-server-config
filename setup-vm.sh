@@ -121,7 +121,7 @@ setup_apps() {
     
     # Process each group in apps.yaml
     echo "Reading groups from apps.yaml..."
-    yq r apps.yaml 'groups.*.name' | while read -r group; do
+    for group in $(yq r apps.yaml 'groups | keys | .[]'); do
         echo "Processing group: $group"
         
         # Get base path for group
@@ -136,7 +136,7 @@ setup_apps() {
             
             # Process each app in the group
             echo "Reading apps for group $group..."
-            yq r apps.yaml "groups.$group.apps.*.name" | while read -r app; do
+            for app in $(yq r apps.yaml "groups.$group.apps | keys | .[]"); do
                 echo "Processing app: $app"
                 
                 # Get app configuration
