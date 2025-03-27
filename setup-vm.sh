@@ -119,9 +119,16 @@ setup_apps() {
     sudo cp -r ./* /home/ubuntu/apps/deployment/
     sudo chown -R $USER:$USER /home/ubuntu/apps/deployment
     
+    # Debug: Print the contents of apps.yaml
+    echo "Contents of apps.yaml:"
+    cat apps.yaml
+    
     # Process each group in apps.yaml
     echo "Reading groups from apps.yaml..."
-    for group in $(yq r apps.yaml 'groups | keys | .[]'); do
+    groups=$(yq r apps.yaml 'groups | keys | .[]')
+    echo "Found groups: $groups"
+    
+    for group in $groups; do
         echo "Processing group: $group"
         
         # Get base path for group
@@ -136,7 +143,10 @@ setup_apps() {
             
             # Process each app in the group
             echo "Reading apps for group $group..."
-            for app in $(yq r apps.yaml "groups.$group.apps | keys | .[]"); do
+            apps=$(yq r apps.yaml "groups.$group.apps | keys | .[]")
+            echo "Found apps: $apps"
+            
+            for app in $apps; do
                 echo "Processing app: $app"
                 
                 # Get app configuration
