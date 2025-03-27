@@ -72,7 +72,7 @@ fi
 
 # Download and install Docker Compose plugin
 echo "Installing Docker Compose plugin..."
-sudo curl -SL "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose
+sudo curl -SL "https://github.com/docker/compose/releases/download/v2.34.5/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Add current user to docker group
@@ -83,16 +83,68 @@ sudo usermod -aG docker $USER
 echo "Creating application directories..."
 mkdir -p /home/ubuntu/apps/video-summary/{backend,frontend}
 
+# Function to check if directory is empty
+is_dir_empty() {
+    [ -z "$(ls -A "$1")" ]
+}
+
+# Function to clone repository
+clone_repo() {
+    local repo_url=$1
+    local target_dir=$2
+    local repo_name=$3
+
+    if [ -d "$target_dir" ]; then
+        if is_dir_empty "$target_dir"; then
+            echo "Cloning $repo_name repository..."
+            if ! git clone "$repo_url" "$target_dir"; then
+                echo "Error: Failed to clone $repo_name repository"
+                exit 1
+            fi
+        else
+            echo "Directory $target_dir already exists and is not empty."
+            echo "Options:"
+            echo "1) Skip cloning (if repositories are already set up correctly)"
+            echo "2) Remove directory and re-clone (if you want a fresh start)"
+            echo "3) Exit (to check the directories first)"
+            read -p "Choose an option (1-3): " choice
+
+            case $choice in
+                1)
+                    echo "Skipping $repo_name repository clone..."
+                    ;;
+                2)
+                    echo "Removing existing $repo_name directory..."
+                    rm -rf "$target_dir"
+                    echo "Cloning $repo_name repository..."
+                    if ! git clone "$repo_url" "$target_dir"; then
+                        echo "Error: Failed to clone $repo_name repository"
+                        exit 1
+                    fi
+                    ;;
+                3)
+                    echo "Exiting to check directories..."
+                    exit 1
+                    ;;
+                *)
+                    echo "Invalid option. Exiting..."
+                    exit 1
+                    ;;
+            esac
+        fi
+    else
+        echo "Cloning $repo_name repository..."
+        if ! git clone "$repo_url" "$target_dir"; then
+            echo "Error: Failed to clone $repo_name repository"
+            exit 1
+        fi
+    fi
+}
+
 # Clone repositories
 echo "Cloning repositories..."
-git clone https://github.com/luisher98/video-to-summary.git /home/ubuntu/apps/video-summary/backend || {
-    echo "Error: Failed to clone backend repository"
-    exit 1
-}
-git clone https://github.com/luisher98/video-to-summary-app.git /home/ubuntu/apps/video-summary/frontend || {
-    echo "Error: Failed to clone frontend repository"
-    exit 1
-}
+clone_repo "https://github.com/luisher98/video-to-summary-backend.git" "/home/ubuntu/apps/video-summary/backend" "backend"
+clone_repo "https://github.com/luisher98/video-to-summary-frontend.git" "/home/ubuntu/apps/video-summary/frontend" "frontend"
 
 # Copy frontend nginx config
 echo "Setting up Nginx configuration..."
