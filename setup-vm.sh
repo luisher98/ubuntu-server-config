@@ -21,9 +21,9 @@ check_yq() {
             sudo apt-get install -y golang-go
         fi
         
-        # Install yq using go install
+        # Install yq using go install with a specific version compatible with Go 1.18
         echo "Installing yq using go install..."
-        if ! go install github.com/mikefarah/yq/v4@latest; then
+        if ! go install github.com/mikefarah/yq/v3@latest; then
             echo "Error: Failed to install yq"
             exit 1
         fi
