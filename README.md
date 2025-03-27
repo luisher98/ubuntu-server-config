@@ -25,7 +25,11 @@ The deployment assumes the following folder structure on the server:
               ├── frontend.Dockerfile
               ├── nginx.conf
               ├── frontend-nginx.conf
-              ├── .env           # Optional environment variables
+              ├── setup-env.sh
+              ├── setup-backend-env.sh
+              ├── setup-frontend-env.sh
+              ├── setup-vm.sh
+              ├── test-deployment.sh
               └── .github/workflows/
                   ├── deploy-backend.yml
                   └── deploy-frontend.yml
@@ -46,9 +50,15 @@ The deployment assumes the following folder structure on the server:
 
 3. Set up environment variables:
    ```bash
+   # Main deployment environment
+   cd /home/ubuntu/apps/video-summary/deployment
+   ./setup-env.sh
+   
+   # Backend environment
    cd /home/ubuntu/apps/video-summary/backend
    ./setup-backend-env.sh
    
+   # Frontend environment
    cd /home/ubuntu/apps/video-summary/frontend
    ./setup-frontend-env.sh
    ```
@@ -77,8 +87,50 @@ The deployment assumes the following folder structure on the server:
 - Environment variables with validation
 - Secure file permissions (600) for .env files
 - No direct exposure of internal ports
-- Rate limiting configured
+- Rate limiting configured:
+  - API endpoints: 10 requests/second
+  - Static content: 100 requests/second
 - Input validation for API keys and connection strings
+
+## Performance Optimization
+
+- Gzip compression enabled for static files
+- Proxy buffering configured for better performance
+- Optimized Nginx configuration for static file serving
+- Resource limits for containers:
+  - Backend: 1 CPU, 1GB RAM
+  - Frontend: 0.5 CPU, 512MB RAM
+  - Nginx: 0.5 CPU, 256MB RAM
+- Health checks to ensure service availability
+- Log rotation to prevent disk space issues
+
+## Monitoring and Health Checks
+
+All services include health checks:
+- Backend: Checks `/health` endpoint
+- Frontend: Checks root endpoint
+- Nginx: Validates configuration
+
+To check service status:
+```bash
+docker compose ps
+```
+
+To view logs:
+```bash
+docker compose logs -f [service_name]
+```
+
+## Logging
+
+- Access logs: `/var/log/nginx/access.log`
+- Error logs: `/var/log/nginx/error.log`
+- Frontend access logs: `/var/log/nginx/frontend_access.log`
+- Frontend error logs: `/var/log/nginx/frontend_error.log`
+
+Log rotation is configured to prevent disk space issues:
+- Max log size: 10MB
+- Max number of rotated logs: 3
 
 ## CI/CD Setup
 
@@ -109,22 +161,19 @@ To manually deploy updates:
    docker compose up -d --build
    ```
 
-## Monitoring and Health Checks
+## Testing Deployment
 
-All services include health checks:
-- Backend: Checks `/health` endpoint
-- Frontend: Checks root endpoint
-- Nginx: Validates configuration
-
-To check service status:
+Run the test script to verify the deployment:
 ```bash
-docker compose ps
+./test-deployment.sh
 ```
 
-To view logs:
-```bash
-docker compose logs -f [service_name]
-```
+This will check:
+- Service status
+- Port availability
+- Log file existence
+- Endpoint accessibility
+- Rate limiting functionality
 
 ## Troubleshooting
 
@@ -182,13 +231,6 @@ docker compose logs -f [service_name]
    ```bash
    docker compose exec nginx tail -f /var/log/nginx/access.log
    ```
-
-## Performance Optimization
-
-- Gzip compression enabled for static files
-- Proxy buffering configured for better performance
-- Optimized Nginx configuration for static file serving
-- Health checks to ensure service availability
 
 ## Backup and Recovery
 
