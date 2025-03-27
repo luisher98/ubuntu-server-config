@@ -46,6 +46,11 @@ cd /home/ubuntu/apps/deployment
 docker compose up -d
 ```
 
+or 
+```bash
+cd && rm -rf /home/ubuntu/apps/* && git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/deployment && cd /home/ubuntu/apps/deployment && chmod +x ./setup-vm.sh && ./setup-vm.sh && cd && exec bash && cd /home/ubuntu/apps/ && ls
+```
+
 ## Application Management
 
 The `apps.yaml` file defines the structure and configuration of all applications:
