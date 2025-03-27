@@ -121,11 +121,11 @@ setup_apps() {
     
     # Process each group in apps.yaml
     echo "Reading groups from apps.yaml..."
-    yq e '.groups | keys | .[]' apps.yaml | while read -r group; do
+    yq r apps.yaml 'groups.*.name' | while read -r group; do
         echo "Processing group: $group"
         
         # Get base path for group
-        base_path=$(yq e ".groups.$group.base_path" apps.yaml)
+        base_path=$(yq r apps.yaml "groups.$group.base_path")
         echo "Base path for group $group: $base_path"
         
         # Create group directory (excluding deployment)
@@ -136,11 +136,11 @@ setup_apps() {
             
             # Process each app in the group
             echo "Reading apps for group $group..."
-            yq e ".groups.$group.apps | keys | .[]" apps.yaml | while read -r app; do
+            yq r apps.yaml "groups.$group.apps.*.name" | while read -r app; do
                 echo "Processing app: $app"
                 
                 # Get app configuration
-                repo=$(yq e ".groups.$group.apps.$app.repo" apps.yaml)
+                repo=$(yq r apps.yaml "groups.$group.apps.$app.repo")
                 app_path="$base_path/$app"
                 echo "Repository URL: $repo"
                 echo "App path: $app_path"
