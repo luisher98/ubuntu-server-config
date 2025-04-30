@@ -21,15 +21,26 @@ This repository contains the configuration and deployment scripts for managing a
 git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/deployment
 ```
 
-2. Run the VM setup script to install Docker and create necessary directories:
+2. Make the setup scripts executable:
 ```bash
 cd /home/ubuntu/apps/deployment
+chmod +x setup-vm.sh setup-env.sh
+```
+
+3. Run the VM setup script to install Docker and create necessary directories:
+```bash
 ./setup-vm.sh
 ```
 
-3. Log out and back in for Docker group changes to take effect.
+4. Log out and back in for Docker group changes to take effect.
 
-4. Start the applications:
+5. Run the environment setup script:
+```bash
+cd /home/ubuntu/apps/deployment
+./setup-env.sh
+```
+
+6. Start the applications:
 ```bash
 cd /home/ubuntu/apps/video-summary
 docker compose up -d
@@ -37,7 +48,7 @@ docker compose up -d
 
 or use the one-liner:
 ```bash
-cd && rm -rf /home/ubuntu/apps/* && git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/deployment && cd /home/ubuntu/apps/deployment && chmod +x ./setup-vm.sh && ./setup-vm.sh && cd && exec bash && cd /home/ubuntu/apps/ && ls
+cd && rm -rf /home/ubuntu/apps/* && git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/deployment && cd /home/ubuntu/apps/deployment && chmod +x ./setup-vm.sh ./setup-env.sh && ./setup-vm.sh && cd && exec bash && cd /home/ubuntu/apps/deployment && ./setup-env.sh && cd /home/ubuntu/apps/video-summary && docker compose up -d
 ```
 
 ## Application Management
@@ -108,6 +119,7 @@ This repository contains the following deployment workflows:
 ├── deployment/           # This repository
 │   ├── apps.yaml        # Application configuration
 │   ├── setup-vm.sh      # Server setup script
+│   ├── setup-env.sh     # Environment setup script
 │   ├── docker-compose.yml
 │   └── nginx.conf
 └── video-summary/       # Application directory
