@@ -14,16 +14,25 @@ This repository contains the configuration and deployment scripts for managing a
 - Resource limits and monitoring
 - Health checks for all services
 
+## Prerequisites
+
+- Ubuntu 22.04 LTS or later
+- Git
+- Docker and Docker Compose (will be installed by the setup script)
+- User with sudo privileges
+
 ## Quick Start Guide
 
 1. Clone the deployment repository:
 ```bash
-git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/deployment
+# Create apps directory and clone the repository
+mkdir -p ~/apps
+git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment
 ```
 
 2. Make the setup scripts executable:
 ```bash
-cd /home/ubuntu/apps/deployment
+cd ~/apps/deployment
 chmod +x setup-vm.sh setup-env.sh
 ```
 
@@ -36,29 +45,47 @@ chmod +x setup-vm.sh setup-env.sh
 
 5. Run the environment setup script:
 ```bash
-cd /home/ubuntu/apps/deployment
+cd ~/apps/deployment
 ./setup-env.sh
 ```
 
 6. Start the applications:
 ```bash
-cd /home/ubuntu/apps/video-summary
+cd ~/apps/video-summary
 docker compose up -d
 ```
 
-or use the one-liner:
+or use the one-liner (recommended for fresh installations):
 ```bash
-cd && rm -rf /home/ubuntu/apps/* && git clone https://github.com/luisher98/ubuntu-server-config.git /home/ubuntu/apps/deployment && cd /home/ubuntu/apps/deployment && chmod +x ./setup-vm.sh ./setup-env.sh && ./setup-vm.sh && cd && exec bash && cd /home/ubuntu/apps/deployment && ./setup-env.sh && cd /home/ubuntu/apps/video-summary && docker compose up -d
+cd && mkdir -p ~/apps && rm -rf ~/apps/* && git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment && cd ~/apps/deployment && chmod +x ./setup-vm.sh ./setup-env.sh && ./setup-vm.sh && cd && exec bash && cd ~/apps/deployment && ./setup-env.sh && cd ~/apps/video-summary && docker compose up -d
 ```
 
-## Application Management
+## Directory Structure
+
+The setup will create the following directory structure in your home directory:
+
+```
+~/apps/
+├── deployment/           # This repository
+│   ├── apps.yaml        # Application configuration
+│   ├── setup-vm.sh      # Server setup script
+│   ├── setup-env.sh     # Environment setup script
+│   ├── docker-compose.yml
+│   └── nginx.conf
+└── video-summary/       # Application directory
+    ├── backend/         # Backend application
+    ├── frontend/        # Frontend application
+    └── nginx/          # Nginx configuration
+```
+
+## Application Configuration
 
 The `apps.yaml` file defines the structure and configuration of all applications:
 
 ```yaml
 groups:
   video-summary:
-    base_path: /home/ubuntu/apps/video-summary
+    base_path: ~/apps/video-summary
     apps:
       backend:
         repo: https://github.com/luisher98/video-to-summary-backend.git
@@ -112,20 +139,33 @@ This repository contains the following deployment workflows:
    - Updates frontend code
    - Rebuilds and restarts frontend container
 
-## Directory Structure
+## Troubleshooting
 
+If you encounter any issues:
+
+1. Check if Docker is installed and running:
+```bash
+docker --version
+systemctl status docker
 ```
-/home/ubuntu/apps/
-├── deployment/           # This repository
-│   ├── apps.yaml        # Application configuration
-│   ├── setup-vm.sh      # Server setup script
-│   ├── setup-env.sh     # Environment setup script
-│   ├── docker-compose.yml
-│   └── nginx.conf
-└── video-summary/       # Application directory
-    ├── backend/         # Backend application
-    ├── frontend/        # Frontend application
-    └── nginx/          # Nginx configuration
+
+2. Verify the directory structure:
+```bash
+ls -la ~/apps
+ls -la ~/apps/video-summary
+```
+
+3. Check Docker containers:
+```bash
+cd ~/apps/video-summary
+docker compose ps
+```
+
+4. View logs for specific services:
+```bash
+docker compose logs backend
+docker compose logs frontend
+docker compose logs nginx
 ```
 
 ## Security

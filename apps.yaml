@@ -3,8 +3,8 @@
 
 # Global deployment settings
 settings:
-  base_path: /home/ubuntu/apps
-  deployment_path: /home/ubuntu/apps/deployment
+  base_path: ~/apps
+  deployment_path: ~/apps/deployment
   nginx:
     ports:
       - 80
@@ -25,7 +25,7 @@ settings:
 # Application groups
 groups:
   video-summary:
-    base_path: /home/ubuntu/apps/video-summary
+    base_path: ~/apps/video-summary
     network: video-summary-network
     apps:
       backend:

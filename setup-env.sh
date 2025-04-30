@@ -9,31 +9,35 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
+# Get the current user's home directory
+USER_HOME=$(eval echo ~$USER)
+APPS_DIR="$USER_HOME/apps"
+
 # Create necessary directories
 echo "Creating application directories..."
-mkdir -p /home/ubuntu/apps/video-summary/{backend,frontend,nginx}
+mkdir -p "$APPS_DIR/video-summary/{backend,frontend,nginx}"
 
 # Copy configuration files
 echo "Copying configuration files..."
-cp /home/ubuntu/apps/deployment/nginx.conf /home/ubuntu/apps/video-summary/nginx/
-cp /home/ubuntu/apps/deployment/docker-compose.yml /home/ubuntu/apps/video-summary/
+cp "$APPS_DIR/deployment/nginx.conf" "$APPS_DIR/video-summary/nginx/"
+cp "$APPS_DIR/deployment/docker-compose.yml" "$APPS_DIR/video-summary/"
 
 # Clone repositories if they don't exist
-if [ ! -d "/home/ubuntu/apps/video-summary/backend" ]; then
+if [ ! -d "$APPS_DIR/video-summary/backend" ]; then
     echo "Cloning backend repository..."
-    git clone https://github.com/luisher98/video-to-summary-backend.git /home/ubuntu/apps/video-summary/backend
+    git clone https://github.com/luisher98/video-to-summary-backend.git "$APPS_DIR/video-summary/backend"
 fi
 
-if [ ! -d "/home/ubuntu/apps/video-summary/frontend" ]; then
+if [ ! -d "$APPS_DIR/video-summary/frontend" ]; then
     echo "Cloning frontend repository..."
-    git clone https://github.com/luisher98/video-to-summary-frontend.git /home/ubuntu/apps/video-summary/frontend
+    git clone https://github.com/luisher98/video-to-summary-frontend.git "$APPS_DIR/video-summary/frontend"
 fi
 
 # Set proper permissions
 echo "Setting permissions..."
-chown -R $USER:$USER /home/ubuntu/apps/video-summary
+chown -R $USER:$USER "$APPS_DIR/video-summary"
 
 echo "✅ Environment setup complete!"
 echo "You can now start the application with:"
-echo "cd /home/ubuntu/apps/video-summary"
+echo "cd $APPS_DIR/video-summary"
 echo "docker compose up -d" 
