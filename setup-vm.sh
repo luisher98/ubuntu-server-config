@@ -115,20 +115,20 @@ install_docker() {
 
 # Parse YAML file and convert to shell variables
 parse_yaml() {
-   local prefix=$2
-   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-   sed -ne "s|^\($s\):|\1|" \
-        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-   awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-      }
-   }'
+    local prefix=$2
+    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+    sed -ne "s|^\($s\):|\1|" \
+         -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+         -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+    awk -F$fs '{
+        indent = length($1)/2;
+        vname[indent] = $2;
+        for (i in vname) {if (i > indent) {delete vname[i]}}
+        if (length($3) > 0) {
+            vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+            printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+        }
+    }'
 }
 
 # Setup application groups
@@ -170,11 +170,13 @@ setup_apps() {
     # Extract groups from the CONFIG_ variables
     echo "Extracting application groups..."
     groups=""
-    for var in $(compgen -v | grep "^CONFIG_groups_" | grep -v "_base_path$" | grep -v "_apps_"); do
-        group=${var#CONFIG_groups_}
-        # Only add if it's a top-level group (not a nested property)
-        if [[ ! "$group" =~ _ ]]; then
-            groups="$groups $group"
+    for var in $(compgen -v | grep "^CONFIG_groups_"); do
+        # Extract group name (everything between groups_ and the next underscore)
+        if [[ $var =~ ^CONFIG_groups_([^_]+)_ ]]; then
+            group="${BASH_REMATCH[1]}"
+            if [[ ! " $groups " =~ " $group " ]]; then
+                groups="$groups $group"
+            fi
         fi
     done
     
@@ -209,11 +211,13 @@ setup_apps() {
             # Extract apps for this group from CONFIG_ variables
             echo "Reading apps for group $group..."
             apps=""
-            for var in $(compgen -v | grep "^CONFIG_groups_${group}_apps_" | grep -v "_repo$" | grep -v "_env_file$" | grep -v "_port$" | grep -v "_resources$" | grep -v "_image$" | grep -v "_ports$" | grep -v "_volumes$" | grep -v "_version$" | grep -v "_healthcheck$" | grep -v "_restart$" | grep -v "_logging$"); do
-                app=${var#CONFIG_groups_${group}_apps_}
-                # Only add if it's a top-level app (not a nested property)
-                if [[ ! "$app" =~ _ ]]; then
-                    apps="$apps $app"
+            for var in $(compgen -v | grep "^CONFIG_groups_${group}_apps_"); do
+                # Extract app name (everything between apps_ and the next underscore)
+                if [[ $var =~ ^CONFIG_groups_${group}_apps_([^_]+)_ ]]; then
+                    app="${BASH_REMATCH[1]}"
+                    if [[ ! " $apps " =~ " $app " ]]; then
+                        apps="$apps $app"
+                    fi
                 fi
             done
             
