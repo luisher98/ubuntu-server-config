@@ -147,7 +147,7 @@ setup_apps() {
     
     # Use yq to get the groups
     echo "Extracting application groups..."
-    groups=$(yq e '.groups | keys | .[]' apps.yaml)
+    groups=$(yq r apps.yaml 'groups.*' | grep "base_path:" -B1 | grep -v "base_path:" | grep -v -- "--" | sed 's/^[[:space:]]*//')
     
     if [ -z "$groups" ]; then
         echo "Error: No groups found in apps.yaml"
@@ -160,7 +160,7 @@ setup_apps() {
         echo "Processing group: $group"
         
         # Get base path for group using yq
-        base_path=$(yq e ".groups.$group.base_path" apps.yaml)
+        base_path=$(yq r apps.yaml "groups.${group}.base_path")
         # Replace ~ with actual home directory
         base_path=$(echo "$base_path" | sed "s|~|$USER_HOME|g")
         echo "Base path for group $group: $base_path"
@@ -178,7 +178,7 @@ setup_apps() {
             
             # Get apps for this group using yq
             echo "Reading apps for group $group..."
-            apps=$(yq e ".groups.$group.apps | keys | .[]" apps.yaml)
+            apps=$(yq r apps.yaml "groups.${group}.apps.*" | grep "repo\|image:" -B1 | grep -v "repo\|image:" | grep -v -- "--" | sed 's/^[[:space:]]*//')
             
             if [ -z "$apps" ]; then
                 echo "Warning: No apps found for group $group"
@@ -191,7 +191,7 @@ setup_apps() {
                 echo "Processing app: $app"
                 
                 # Get app configuration using yq
-                repo=$(yq e ".groups.$group.apps.$app.repo" apps.yaml)
+                repo=$(yq r apps.yaml "groups.${group}.apps.${app}.repo")
                 app_path="$base_path/$app"
                 echo "Repository URL: $repo"
                 echo "App path: $app_path"
