@@ -9,6 +9,11 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
+# Get the current user's home directory
+USER_HOME=$(eval echo ~$USER)
+APPS_DIR="$USER_HOME/apps"
+DEPLOYMENT_DIR="$APPS_DIR/deployment"
+
 # Check if yq is installed
 check_yq() {
     if ! command -v yq &> /dev/null; then
@@ -135,24 +140,24 @@ setup_apps() {
     echo "Current directory: $CURRENT_DIR"
     
     # Create base apps directory
-    sudo mkdir -p /home/ubuntu/apps
+    mkdir -p "$APPS_DIR"
     
     # Copy deployment files to the correct location if they don't exist
     echo "Setting up deployment files..."
-    if [ "$CURRENT_DIR" != "/home/ubuntu/apps/deployment" ]; then
+    if [ "$CURRENT_DIR" != "$DEPLOYMENT_DIR" ]; then
         for file in ./*; do
             if [ -f "$file" ] || [ -d "$file" ]; then
                 filename=$(basename "$file")
-                if [ ! -f "/home/ubuntu/apps/deployment/$filename" ] && [ ! -d "/home/ubuntu/apps/deployment/$filename" ]; then
+                if [ ! -f "$DEPLOYMENT_DIR/$filename" ] && [ ! -d "$DEPLOYMENT_DIR/$filename" ]; then
                     echo "Copying $filename to deployment directory"
-                    sudo cp -r "$file" "/home/ubuntu/apps/deployment/"
+                    cp -r "$file" "$DEPLOYMENT_DIR/"
                 fi
             fi
         done
     else
         echo "Already in deployment directory, skipping file copy"
     fi
-    sudo chown -R $USER:$USER /home/ubuntu/apps/deployment
+    chown -R $USER:$USER "$DEPLOYMENT_DIR"
     
     # Debug: Print the contents of apps.yaml
     echo "Contents of apps.yaml:"
@@ -183,6 +188,8 @@ setup_apps() {
         # Get base path for group
         base_path_var="CONFIG_groups_${group}_base_path"
         base_path=${!base_path_var}
+        # Replace ~ with actual home directory
+        base_path=$(echo "$base_path" | sed "s|~|$USER_HOME|g")
         echo "Base path for group $group: $base_path"
         
         if [ -z "$base_path" ]; then
@@ -193,8 +200,8 @@ setup_apps() {
         # Create group directory (excluding deployment)
         if [ "$group" != "deployment" ]; then
             echo "Creating group directory: $base_path"
-            sudo mkdir -p "$base_path"
-            sudo chown -R $USER:$USER "$base_path"
+            mkdir -p "$base_path"
+            chown -R $USER:$USER "$base_path"
             
             # Extract apps for this group from CONFIG_ variables
             echo "Reading apps for group $group..."
@@ -249,35 +256,14 @@ setup_apps() {
                         echo "Failed to clone $repo"
                         exit 1
                     fi
-                else
-                    echo "Repository already exists: $app_path"
                 fi
-                
-                # Copy setup-env.sh if it exists
-                if [ -f "setup-env.sh" ]; then
-                    echo "Copying setup-env.sh to $app_path"
-                    cp setup-env.sh "$app_path/"
-                    chmod +x "$app_path/setup-env.sh"
-                fi
-                
-                # Create .env file if it doesn't exist
-                if [ ! -f "$app_path/.env" ]; then
-                    echo "Creating .env file for $app"
-                    touch "$app_path/.env"
-                    chmod 600 "$app_path/.env"
-                fi
-                
-                echo "App setup complete: $app"
             done
         fi
     done
-    
-    echo "All applications have been set up"
 }
 
-# Main script
+# Main execution
 echo "Starting VM setup..."
-
 check_yq
 validate_config
 install_packages
@@ -286,6 +272,6 @@ setup_apps
 
 echo "✅ Setup complete! Please log out and back in for Docker group changes to take effect."
 echo "After logging back in, you can use the following commands:"
-echo "1. cd /home/ubuntu/apps/video-summary"
+echo "1. cd $APPS_DIR/video-summary"
 echo "2. ./setup-env.sh"
 echo "3. docker compose up -d" 
