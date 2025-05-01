@@ -3,6 +3,16 @@
 # Exit on error
 set -e
 
+# Configuration
+APPS_CONFIG=(
+    "video-summary:/home/uoc/apps/video-summary:video-summary-network"
+)
+
+APP_REPOS=(
+    "video-summary:backend:https://github.com/luisher98/video-to-summary-backend.git"
+    "video-summary:frontend:https://github.com/luisher98/video-to-summary-frontend.git"
+)
+
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then 
     echo "Please do not run as root"
@@ -47,14 +57,6 @@ check_yq() {
         echo "yq installed successfully"
     else
         echo "yq is already installed"
-    fi
-}
-
-# Validate config file
-validate_config() {
-    if [ ! -f "apps.yaml" ]; then
-        echo "Error: apps.yaml not found"
-        exit 1
     fi
 }
 
@@ -117,115 +119,49 @@ install_docker() {
 setup_apps() {
     echo "Setting up application groups..."
     
-    # Get the current directory
-    CURRENT_DIR=$(pwd)
-    echo "Current directory: $CURRENT_DIR"
-    
     # Create base apps directory
     mkdir -p "$APPS_DIR"
     
-    # Copy deployment files to the correct location if they don't exist
-    echo "Setting up deployment files..."
-    if [ "$CURRENT_DIR" != "$DEPLOYMENT_DIR" ]; then
-        for file in ./*; do
-            if [ -f "$file" ] || [ -d "$file" ]; then
-                filename=$(basename "$file")
-                if [ ! -f "$DEPLOYMENT_DIR/$filename" ] && [ ! -d "$DEPLOYMENT_DIR/$filename" ]; then
-                    echo "Copying $filename to deployment directory"
-                    cp -r "$file" "$DEPLOYMENT_DIR/"
-                fi
-            fi
-        done
-    else
-        echo "Already in deployment directory, skipping file copy"
-    fi
-    chown -R $USER:$USER "$DEPLOYMENT_DIR"
-    
-    # Debug: Print the contents of apps.yaml
-    echo "Contents of apps.yaml:"
-    cat apps.yaml
-    
-    # Use yq to get the groups
-    echo "Extracting application groups..."
-    groups=$(yq r apps.yaml 'groups.*' | grep "base_path:" -B1 | grep -v "base_path:" | grep -v -- "--" | sed 's/^[[:space:]]*//')
-    
-    if [ -z "$groups" ]; then
-        echo "Error: No groups found in apps.yaml"
-        exit 1
-    fi
-    
-    echo "Found groups: $groups"
-    
-    for group in $groups; do
+    # Process each app group
+    for config in "${APPS_CONFIG[@]}"; do
+        IFS=':' read -r group base_path network <<< "$config"
         echo "Processing group: $group"
         
-        # Get base path for group using yq
-        base_path=$(yq r apps.yaml "groups.${group}.base_path")
-        # Replace ~ with actual home directory
-        base_path=$(echo "$base_path" | sed "s|~|$USER_HOME|g")
-        echo "Base path for group $group: $base_path"
+        # Create group directory
+        echo "Creating group directory: $base_path"
+        mkdir -p "$base_path"
+        chown -R $USER:$USER "$base_path"
         
-        if [ -z "$base_path" ] || [ "$base_path" = "null" ]; then
-            echo "Error: No base_path found for group $group"
-            continue
-        fi
-        
-        # Create group directory (excluding deployment)
-        if [ "$group" != "deployment" ]; then
-            echo "Creating group directory: $base_path"
-            mkdir -p "$base_path"
-            chown -R $USER:$USER "$base_path"
+        # Process apps for this group
+        for repo_config in "${APP_REPOS[@]}"; do
+            IFS=':' read -r repo_group app_name repo_url <<< "$repo_config"
             
-            # Get apps for this group using yq
-            echo "Reading apps for group $group..."
-            apps=$(yq r apps.yaml "groups.${group}.apps.*" | grep "repo\|image:" -B1 | grep -v "repo\|image:" | grep -v -- "--" | sed 's/^[[:space:]]*//')
-            
-            if [ -z "$apps" ]; then
-                echo "Warning: No apps found for group $group"
-                continue
-            fi
-            
-            echo "Found apps: $apps"
-            
-            for app in $apps; do
-                echo "Processing app: $app"
-                
-                # Get app configuration using yq
-                repo=$(yq r apps.yaml "groups.${group}.apps.${app}.repo")
-                app_path="$base_path/$app"
-                echo "Repository URL: $repo"
-                echo "App path: $app_path"
-                
-                if [ -z "$repo" ] || [ "$repo" = "null" ]; then
-                    # Special case for nginx which doesn't have a repo field
-                    if [ "$app" = "nginx" ]; then
-                        echo "Skipping repository clone for nginx (image-based)"
-                        # Create nginx directory
-                        mkdir -p "$app_path"
-                        # Copy nginx config files if needed
-                        if [ -f "nginx.conf" ]; then
-                            echo "Copying nginx.conf to $app_path"
-                            cp nginx.conf "$app_path/"
-                        fi
-                        continue
-                    else
-                        echo "Error: No repository URL found for app $app"
-                        continue
-                    fi
-                fi
+            if [ "$repo_group" = "$group" ]; then
+                echo "Processing app: $app_name"
+                app_path="$base_path/$app_name"
                 
                 # Clone repository if it doesn't exist
                 if [ ! -d "$app_path" ]; then
-                    echo "Cloning repository: $repo"
-                    git clone "$repo" "$app_path"
+                    echo "Cloning repository: $repo_url"
+                    git clone "$repo_url" "$app_path"
                     if [ $? -eq 0 ]; then
-                        echo "Successfully cloned $repo"
+                        echo "Successfully cloned $repo_url"
                     else
-                        echo "Failed to clone $repo"
+                        echo "Failed to clone $repo_url"
                         exit 1
                     fi
                 fi
-            done
+            fi
+        done
+        
+        # Special case for nginx
+        if [ "$group" = "video-summary" ]; then
+            nginx_path="$base_path/nginx"
+            mkdir -p "$nginx_path"
+            if [ -f "nginx.conf" ]; then
+                echo "Copying nginx.conf to $nginx_path"
+                cp nginx.conf "$nginx_path/"
+            fi
         fi
     done
 }
@@ -233,7 +169,6 @@ setup_apps() {
 # Main execution
 echo "Starting VM setup..."
 check_yq
-validate_config
 install_packages
 install_docker
 setup_apps
