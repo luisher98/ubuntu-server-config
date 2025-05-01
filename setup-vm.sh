@@ -113,24 +113,6 @@ install_docker() {
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 }
 
-# Parse YAML file and convert to shell variables
-parse_yaml() {
-    local prefix=$2
-    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-    sed -ne "s|^\($s\):|\1|" \
-         -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-         -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-    awk -F$fs '{
-        indent = length($1)/2;
-        vname[indent] = $2;
-        for (i in vname) {if (i > indent) {delete vname[i]}}
-        if (length($3) > 0) {
-            vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-            printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-        }
-    }'
-}
-
 # Setup application groups
 setup_apps() {
     echo "Setting up application groups..."
@@ -163,41 +145,27 @@ setup_apps() {
     echo "Contents of apps.yaml:"
     cat apps.yaml
     
-    # Parse the YAML file into shell variables
-    echo "Parsing YAML file..."
-    eval $(parse_yaml apps.yaml "CONFIG_")
-    
-    # Extract groups from the CONFIG_ variables
+    # Use yq to get the groups
     echo "Extracting application groups..."
-    groups=""
-    for var in $(compgen -v | grep "^CONFIG_groups_"); do
-        # Extract group name (everything between groups_ and the next underscore)
-        if [[ $var =~ ^CONFIG_groups_([^_]+)_ ]]; then
-            group="${BASH_REMATCH[1]}"
-            if [[ ! " $groups " =~ " $group " ]]; then
-                groups="$groups $group"
-            fi
-        fi
-    done
-    
-    echo "Found groups: $groups"
+    groups=$(yq e '.groups | keys | .[]' apps.yaml)
     
     if [ -z "$groups" ]; then
         echo "Error: No groups found in apps.yaml"
         exit 1
     fi
     
+    echo "Found groups: $groups"
+    
     for group in $groups; do
         echo "Processing group: $group"
         
-        # Get base path for group
-        base_path_var="CONFIG_groups_${group}_base_path"
-        base_path=${!base_path_var}
+        # Get base path for group using yq
+        base_path=$(yq e ".groups.$group.base_path" apps.yaml)
         # Replace ~ with actual home directory
         base_path=$(echo "$base_path" | sed "s|~|$USER_HOME|g")
         echo "Base path for group $group: $base_path"
         
-        if [ -z "$base_path" ]; then
+        if [ -z "$base_path" ] || [ "$base_path" = "null" ]; then
             echo "Error: No base_path found for group $group"
             continue
         fi
@@ -208,37 +176,27 @@ setup_apps() {
             mkdir -p "$base_path"
             chown -R $USER:$USER "$base_path"
             
-            # Extract apps for this group from CONFIG_ variables
+            # Get apps for this group using yq
             echo "Reading apps for group $group..."
-            apps=""
-            for var in $(compgen -v | grep "^CONFIG_groups_${group}_apps_"); do
-                # Extract app name (everything between apps_ and the next underscore)
-                if [[ $var =~ ^CONFIG_groups_${group}_apps_([^_]+)_ ]]; then
-                    app="${BASH_REMATCH[1]}"
-                    if [[ ! " $apps " =~ " $app " ]]; then
-                        apps="$apps $app"
-                    fi
-                fi
-            done
-            
-            echo "Found apps: $apps"
+            apps=$(yq e ".groups.$group.apps | keys | .[]" apps.yaml)
             
             if [ -z "$apps" ]; then
                 echo "Warning: No apps found for group $group"
                 continue
             fi
             
+            echo "Found apps: $apps"
+            
             for app in $apps; do
                 echo "Processing app: $app"
                 
-                # Get app configuration
-                repo_var="CONFIG_groups_${group}_apps_${app}_repo"
-                repo=${!repo_var}
+                # Get app configuration using yq
+                repo=$(yq e ".groups.$group.apps.$app.repo" apps.yaml)
                 app_path="$base_path/$app"
                 echo "Repository URL: $repo"
                 echo "App path: $app_path"
                 
-                if [ -z "$repo" ]; then
+                if [ -z "$repo" ] || [ "$repo" = "null" ]; then
                     # Special case for nginx which doesn't have a repo field
                     if [ "$app" = "nginx" ]; then
                         echo "Skipping repository clone for nginx (image-based)"
