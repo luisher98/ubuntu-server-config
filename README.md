@@ -1,202 +1,123 @@
 # Ubuntu Server Configuration
 
-This repository contains the configuration and deployment scripts for managing applications on an Ubuntu server.
-
-## Features
-
-- Configuration-based application management using `apps.yaml`
-- Automated deployment workflows for:
-  - Server configuration changes
-  - Frontend application updates
-  - Backend application updates
-- Docker-based containerization
-- Nginx reverse proxy with SSL/TLS support
-- Resource limits and monitoring
-- Health checks for all services
+This repository contains scripts and configurations for setting up a development environment on Ubuntu 22.04 LTS or later. It includes deployment scripts for various applications and services.
 
 ## Prerequisites
 
 - Ubuntu 22.04 LTS or later
 - Git
-- Docker and Docker Compose (will be installed by the setup script)
-- User with sudo privileges
+- Docker
+- A user with sudo privileges
 
 ## Quick Start Guide
 
-1. First, clean up any existing installations:
-```bash
-# Remove any existing installations
-rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config
-```
+1. Clean up any existing installations:
+   ```bash
+   rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config
+   ```
 
-2. Clone the deployment repository:
-```bash
-# Create apps directory and clone the repository
-mkdir -p ~/apps
-git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment
-```
+2. Create the apps directory and clone the repository:
+   ```bash
+   mkdir -p ~/apps
+   git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment
+   ```
 
 3. Make the setup scripts executable:
-```bash
-cd ~/apps/deployment
-chmod +x setup-vm.sh setup-env.sh
-```
+   ```bash
+   cd ~/apps/deployment
+   chmod +x setup-vm.sh setup-env.sh setup-vpn.sh
+   ```
 
-4. Run the VM setup script to install Docker and create necessary directories:
-```bash
-./setup-vm.sh
-```
+4. Run the setup script:
+   ```bash
+   ./setup-vm.sh
+   ```
 
-5. Log out and back in for Docker group changes to take effect.
+5. After the script completes, log out and back in for Docker group changes to take effect.
 
-6. Run the environment setup script:
-```bash
-cd ~/apps/deployment
-./setup-env.sh
-```
-
-7. Start the applications:
-```bash
-cd ~/apps/video-summary
-docker compose up -d
-```
-
-or use the one-liner (recommended for fresh installations):
-```bash
-cd && rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config && mkdir -p ~/apps && git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment && cd ~/apps/deployment && chmod +x ./setup-vm.sh ./setup-env.sh && ./setup-vm.sh && cd && exec bash && cd ~/apps/deployment && ./setup-env.sh && cd ~/apps/video-summary && docker compose up -d
-```
+6. Start the applications:
+   ```bash
+   cd ~/apps/deployment
+   ./setup-env.sh
+   docker compose up -d
+   ```
 
 ## Directory Structure
 
-The setup will create the following directory structure in your home directory:
+The setup script will create the following directory structure in your home directory:
 
 ```
 ~/apps/
-├── deployment/           # This repository
-│   ├── apps.yaml        # Application configuration
-│   ├── setup-vm.sh      # Server setup script
-│   ├── setup-env.sh     # Environment setup script
-│   ├── docker-compose.yml
-│   └── nginx.conf
-└── video-summary/       # Application directory
-    ├── backend/         # Backend application
-    ├── frontend/        # Frontend application
+├── deployment/          # Contains deployment scripts and configurations
+└── video-summary/      # Main application directory
+    ├── backend/        # Backend application
+    ├── frontend/       # Frontend application
     └── nginx/          # Nginx configuration
 ```
 
 ## Application Configuration
 
-The `apps.yaml` file defines the structure and configuration of all applications:
+The setup script automatically configures the following applications:
 
-```yaml
-groups:
-  video-summary:
-    base_path: ~/apps/video-summary
-    apps:
-      backend:
-        repo: https://github.com/luisher98/video-to-summary-backend.git
-        env_file: .env
-        port: 5050
-        resources:
-          cpus: '1'
-          memory: 1G
-      frontend:
-        repo: https://github.com/luisher98/video-to-summary-frontend.git
-        env_file: .env
-        port: 3000
-        resources:
-          cpus: '0.5'
-          memory: 512M
-      nginx:
-        image: nginx:alpine
-        ports:
-          - "80:80"
-          - "443:443"
-        resources:
-          cpus: '0.5'
-          memory: 256M
-        volumes:
-          - ./nginx.conf:/etc/nginx/nginx.conf:ro
-          - ./certbot/conf:/etc/letsencrypt
-          - ./certbot/www:/var/www/certbot
-```
+1. **Backend**
+   - Repository: https://github.com/luisher98/video-to-summary-backend.git
+   - Port: 5050
+   - Health check endpoint: /health
 
-## Environment Variables
+2. **Frontend**
+   - Repository: https://github.com/luisher98/video-to-summary-frontend.git
+   - Port: 3000
+   - Health check endpoint: /
 
-Each application manages its own environment variables through GitHub Actions workflows in their respective repositories:
-
-- Backend environment setup: [video-to-summary-backend](https://github.com/luisher98/video-to-summary-backend)
-- Frontend environment setup: [video-to-summary-frontend](https://github.com/luisher98/video-to-summary-frontend)
-
-## Deployment Workflows
-
-This repository contains the following deployment workflows:
-
-1. `deploy-config.yml`: Deploys server configuration changes
-   - Updates server setup
-   - Applies configuration changes
-   - Restarts services
-
-2. `deploy-backend.yml`: Deploys backend application changes
-   - Updates backend code
-   - Rebuilds and restarts backend container
-
-3. `deploy-frontend.yml`: Deploys frontend application changes
-   - Updates frontend code
-   - Rebuilds and restarts frontend container
+3. **Nginx**
+   - Image: nginx:alpine
+   - Ports: 80, 443
+   - Configuration: nginx.conf
 
 ## Troubleshooting
 
-If you encounter any issues:
+If you encounter any issues during setup:
 
-1. Check if Docker is installed and running:
-```bash
-docker --version
-systemctl status docker
-```
+1. Check if all required packages are installed:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y git docker.io docker-compose
+   ```
 
-2. Verify the directory structure:
-```bash
-ls -la ~/apps
-ls -la ~/apps/video-summary
-```
+2. Verify Docker installation:
+   ```bash
+   docker --version
+   docker-compose --version
+   ```
 
-3. Check Docker containers:
-```bash
-cd ~/apps/video-summary
-docker compose ps
-```
+3. Check directory permissions:
+   ```bash
+   ls -la ~/apps
+   ```
 
-4. View logs for specific services:
-```bash
-docker compose logs backend
-docker compose logs frontend
-docker compose logs nginx
-```
+4. If Docker commands fail after setup, try logging out and back in.
 
-5. If you see directories in the wrong place:
-```bash
-# Move backend and frontend to the correct location
-mkdir -p ~/apps/video-summary
-mv ~/backend ~/apps/video-summary/ 2>/dev/null || true
-mv ~/frontend ~/apps/video-summary/ 2>/dev/null || true
-```
+## Handling System Updates
 
-## Security
+If you encounter package manager locks during setup:
 
-- Environment variables are managed through GitHub Secrets
-- Each application repository manages its own secrets
-- SSL/TLS certificates are managed through certbot
-- Docker containers run with limited resources
-- Services are isolated in their own network
+1. Check if automatic updates are running:
+   ```bash
+   ps aux | grep unattended-upgrade
+   ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. If updates are running, you can either:
+   - Wait for them to complete
+   - Or temporarily disable them:
+     ```bash
+     sudo systemctl stop unattended-upgrades
+     sudo systemctl disable unattended-upgrades
+     ```
+   After setup is complete, you can re-enable them:
+   ```bash
+   sudo systemctl enable unattended-upgrades
+   sudo systemctl start unattended-upgrades
+   ```
 
 ## License
 

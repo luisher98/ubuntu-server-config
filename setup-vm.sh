@@ -29,11 +29,17 @@ check_yq() {
     if ! command -v yq &> /dev/null; then
         echo "Installing yq..."
         
-        # Install Go if not installed
+        # Check if Go is installed
         if ! command -v go &> /dev/null; then
             echo "Installing Go..."
             sudo apt-get update
             sudo apt-get install -y golang-go
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to install Go"
+                exit 1
+            fi
+        else
+            echo "Go is already installed"
         fi
         
         # Install yq using go install with a specific version compatible with Go 1.18
@@ -43,9 +49,13 @@ check_yq() {
             exit 1
         fi
         
-        # Create symlink to /usr/local/bin
+        # Create symlink to /usr/local/bin if it doesn't exist
         if [ ! -f "/usr/local/bin/yq" ]; then
             sudo ln -s "$HOME/go/bin/yq" /usr/local/bin/yq
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to create yq symlink"
+                exit 1
+            fi
         fi
         
         # Verify installation
@@ -140,16 +150,24 @@ setup_apps() {
                 echo "Processing app: $app_name"
                 app_path="$base_path/$app_name"
                 
-                # Clone repository if it doesn't exist
+                # Handle repository
                 if [ ! -d "$app_path" ]; then
                     echo "Cloning repository: $repo_url"
                     git clone "$repo_url" "$app_path"
-                    if [ $? -eq 0 ]; then
-                        echo "Successfully cloned $repo_url"
-                    else
+                    if [ $? -ne 0 ]; then
                         echo "Failed to clone $repo_url"
                         exit 1
                     fi
+                else
+                    echo "Updating existing repository: $app_name"
+                    cd "$app_path"
+                    git fetch --all
+                    git reset --hard origin/main
+                    if [ $? -ne 0 ]; then
+                        echo "Failed to update $app_name"
+                        exit 1
+                    fi
+                    cd - > /dev/null
                 fi
             fi
         done
@@ -177,4 +195,5 @@ echo "✅ Setup complete! Please log out and back in for Docker group changes to
 echo "After logging back in, you can use the following commands:"
 echo "1. cd $APPS_DIR/video-summary"
 echo "2. ./setup-env.sh"
+echo "3. docker compose up -d" 
 echo "3. docker compose up -d" 

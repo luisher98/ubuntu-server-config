@@ -16,34 +16,40 @@ apt install -y wireguard
 # Create WireGuard directory
 mkdir -p /etc/wireguard
 
-# Generate server keys
-cd /etc/wireguard
-wg genkey | tee server_private.key | wg pubkey > server_public.key
-wg genkey | tee client_private.key | wg pubkey > client_public.key
+# Check if keys already exist
+if [ ! -f "/etc/wireguard/server_private.key" ] || [ ! -f "/etc/wireguard/client_private.key" ]; then
+    echo "Generating new WireGuard keys..."
+    # Generate server keys
+    cd /etc/wireguard
+    wg genkey | tee server_private.key | wg pubkey > server_public.key
+    wg genkey | tee client_private.key | wg pubkey > client_public.key
+else
+    echo "Using existing WireGuard keys..."
+fi
 
 # Create server configuration
 cat > /etc/wireguard/wg0.conf << EOF
 [Interface]
 Address = 10.0.0.1/24
 ListenPort = 51820
-PrivateKey = $(cat server_private.key)
+PrivateKey = $(cat /etc/wireguard/server_private.key)
 PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
 [Peer]
-PublicKey = $(cat client_public.key)
+PublicKey = $(cat /etc/wireguard/client_public.key)
 AllowedIPs = 10.0.0.2/32
 EOF
 
 # Create client configuration
 cat > /etc/wireguard/client.conf << EOF
 [Interface]
-PrivateKey = $(cat client_private.key)
+PrivateKey = $(cat /etc/wireguard/client_private.key)
 Address = 10.0.0.2/24
 DNS = 8.8.8.8
 
 [Peer]
-PublicKey = $(cat server_public.key)
+PublicKey = $(cat /etc/wireguard/server_public.key)
 Endpoint = $(curl -s ifconfig.me):51820
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25

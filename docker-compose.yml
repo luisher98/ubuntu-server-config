@@ -21,7 +21,7 @@ services:
           cpus: '0.5'
           memory: 512M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
+      test: ["CMD", "sh", "-c", "if command -v curl >/dev/null 2>&1; then curl -f http://localhost:5050/health; else wget -q --spider http://localhost:5050/health; fi"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,7 +53,7 @@ services:
           cpus: '0.2'
           memory: 256M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "sh", "-c", "if command -v curl >/dev/null 2>&1; then curl -f http://localhost:3000; else wget -q --spider http://localhost:3000; fi"]
       interval: 30s
       timeout: 10s
       retries: 3
