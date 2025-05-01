@@ -13,6 +13,20 @@ fi
 CURRENT_DIR=$(pwd)
 echo "Current directory: $CURRENT_DIR"
 
+# Verify we're in the correct directory
+if [[ ! "$CURRENT_DIR" =~ "video-summary" ]]; then
+    echo "Error: This script must be run from the video-summary directory"
+    echo "Please run: cd ~/apps/video-summary"
+    exit 1
+fi
+
+# Verify required directories exist
+if [ ! -d "backend" ] || [ ! -d "frontend" ] || [ ! -d "nginx" ]; then
+    echo "Error: Required directories (backend, frontend, nginx) not found"
+    echo "Please run setup-vm.sh first"
+    exit 1
+fi
+
 # Create docker-compose.yml if it doesn't exist
 if [ ! -f "docker-compose.yml" ]; then
     echo "Creating docker-compose.yml..."
@@ -21,14 +35,14 @@ version: '3.8'
 
 services:
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: ./backend/.env
     ports:
       - "5050:5050"
-    environment:
-      - NODE_ENV=production
     volumes:
       - ./backend:/app
-      - /app/node_modules
     networks:
       - video-summary-network
     deploy:
@@ -40,7 +54,7 @@ services:
           cpus: '0.5'
           memory: 512M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
+      test: ["CMD", "sh", "-c", "if command -v curl >/dev/null 2>&1; then curl -f http://localhost:5050/health; else wget -q --spider http://localhost:5050/health; fi"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -52,11 +66,12 @@ services:
         max-file: "3"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file: ./frontend/.env
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -71,7 +86,7 @@ services:
           cpus: '0.2'
           memory: 256M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "sh", "-c", "if command -v curl >/dev/null 2>&1; then curl -f http://localhost:3000; else wget -q --spider http://localhost:3000; fi"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -89,8 +104,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
     networks:
       - video-summary-network
     deploy:

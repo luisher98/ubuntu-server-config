@@ -28,7 +28,7 @@ This repository contains scripts and configurations for setting up a development
    chmod +x setup-vm.sh setup-env.sh setup-vpn.sh
    ```
 
-4. Run the setup script:
+4. Run the VM setup script:
    ```bash
    ./setup-vm.sh
    ```
@@ -37,8 +37,17 @@ This repository contains scripts and configurations for setting up a development
 
 6. Start the applications:
    ```bash
-   cd ~/apps/deployment
+   # Copy setup-env.sh to the video-summary directory
+   cd ~/apps/video-summary
+   cp ~/apps/deployment/setup-env.sh .
+   cp ~/apps/deployment/docker-compose.yml .
+   cp ~/apps/deployment/nginx.conf nginx/
+   
+   # Make setup-env.sh executable and run it
+   chmod +x setup-env.sh
    ./setup-env.sh
+   
+   # Start the services
    docker compose up -d
    ```
 
@@ -49,10 +58,16 @@ The setup script will create the following directory structure in your home dire
 ```
 ~/apps/
 ├── deployment/          # Contains deployment scripts and configurations
+│   ├── setup-vm.sh     # VM setup script
+│   ├── setup-env.sh    # Environment setup script
+│   ├── setup-vpn.sh    # VPN setup script
+│   ├── docker-compose.yml
+│   └── nginx.conf
 └── video-summary/      # Main application directory
-    ├── backend/        # Backend application
-    ├── frontend/       # Frontend application
+    ├── backend/        # Backend application (cloned from git)
+    ├── frontend/       # Frontend application (cloned from git)
     └── nginx/          # Nginx configuration
+        └── nginx.conf  # Copied from deployment directory
 ```
 
 ## Application Configuration
