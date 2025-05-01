@@ -172,7 +172,10 @@ setup_apps() {
     groups=""
     for var in $(compgen -v | grep "^CONFIG_groups_" | grep -v "_base_path$" | grep -v "_apps_"); do
         group=${var#CONFIG_groups_}
-        groups="$groups $group"
+        # Only add if it's a top-level group (not a nested property)
+        if [[ ! "$group" =~ _ ]]; then
+            groups="$groups $group"
+        fi
     done
     
     echo "Found groups: $groups"
@@ -206,9 +209,12 @@ setup_apps() {
             # Extract apps for this group from CONFIG_ variables
             echo "Reading apps for group $group..."
             apps=""
-            for var in $(compgen -v | grep "^CONFIG_groups_${group}_apps_" | grep -v "_repo$" | grep -v "_env_file$" | grep -v "_port$" | grep -v "_resources$" | grep -v "_image$" | grep -v "_ports$" | grep -v "_volumes$"); do
+            for var in $(compgen -v | grep "^CONFIG_groups_${group}_apps_" | grep -v "_repo$" | grep -v "_env_file$" | grep -v "_port$" | grep -v "_resources$" | grep -v "_image$" | grep -v "_ports$" | grep -v "_volumes$" | grep -v "_version$" | grep -v "_healthcheck$" | grep -v "_restart$" | grep -v "_logging$"); do
                 app=${var#CONFIG_groups_${group}_apps_}
-                apps="$apps $app"
+                # Only add if it's a top-level app (not a nested property)
+                if [[ ! "$app" =~ _ ]]; then
+                    apps="$apps $app"
+                fi
             done
             
             echo "Found apps: $apps"
