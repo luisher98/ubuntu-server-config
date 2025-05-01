@@ -23,33 +23,39 @@ This repository contains the configuration and deployment scripts for managing a
 
 ## Quick Start Guide
 
-1. Clone the deployment repository:
+1. First, clean up any existing installations:
+```bash
+# Remove any existing installations
+rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config
+```
+
+2. Clone the deployment repository:
 ```bash
 # Create apps directory and clone the repository
 mkdir -p ~/apps
 git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment
 ```
 
-2. Make the setup scripts executable:
+3. Make the setup scripts executable:
 ```bash
 cd ~/apps/deployment
 chmod +x setup-vm.sh setup-env.sh
 ```
 
-3. Run the VM setup script to install Docker and create necessary directories:
+4. Run the VM setup script to install Docker and create necessary directories:
 ```bash
 ./setup-vm.sh
 ```
 
-4. Log out and back in for Docker group changes to take effect.
+5. Log out and back in for Docker group changes to take effect.
 
-5. Run the environment setup script:
+6. Run the environment setup script:
 ```bash
 cd ~/apps/deployment
 ./setup-env.sh
 ```
 
-6. Start the applications:
+7. Start the applications:
 ```bash
 cd ~/apps/video-summary
 docker compose up -d
@@ -57,7 +63,7 @@ docker compose up -d
 
 or use the one-liner (recommended for fresh installations):
 ```bash
-cd && mkdir -p ~/apps && rm -rf ~/apps/* && git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment && cd ~/apps/deployment && chmod +x ./setup-vm.sh ./setup-env.sh && ./setup-vm.sh && cd && exec bash && cd ~/apps/deployment && ./setup-env.sh && cd ~/apps/video-summary && docker compose up -d
+cd && rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config && mkdir -p ~/apps && git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment && cd ~/apps/deployment && chmod +x ./setup-vm.sh ./setup-env.sh && ./setup-vm.sh && cd && exec bash && cd ~/apps/deployment && ./setup-env.sh && cd ~/apps/video-summary && docker compose up -d
 ```
 
 ## Directory Structure
@@ -166,6 +172,14 @@ docker compose ps
 docker compose logs backend
 docker compose logs frontend
 docker compose logs nginx
+```
+
+5. If you see directories in the wrong place:
+```bash
+# Move backend and frontend to the correct location
+mkdir -p ~/apps/video-summary
+mv ~/backend ~/apps/video-summary/ 2>/dev/null || true
+mv ~/frontend ~/apps/video-summary/ 2>/dev/null || true
 ```
 
 ## Security
