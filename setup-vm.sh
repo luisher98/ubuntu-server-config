@@ -54,6 +54,118 @@ backup_directory() {
     fi
 }
 
+# Function to prompt for environment variables
+prompt_env_variables() {
+    echo "Setting up environment variables..."
+    echo "Please enter the following values (press Enter to skip if not needed):"
+    
+    # Backend variables
+    read -p "OpenAI API Key: " OPENAI_API_KEY
+    read -p "OpenAI Model (default: gpt-3.5-turbo): " OPENAI_MODEL
+    OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
+    
+    read -p "YouTube API Key: " YOUTUBE_API_KEY
+    
+    echo "Azure Storage Configuration:"
+    read -p "Azure Storage Auth Type (default: servicePrincipal): " AZURE_STORAGE_AUTH_TYPE
+    AZURE_STORAGE_AUTH_TYPE=${AZURE_STORAGE_AUTH_TYPE:-servicePrincipal}
+    read -p "Azure Storage Account Name: " AZURE_STORAGE_ACCOUNT_NAME
+    read -p "Azure Storage Connection String: " AZURE_STORAGE_CONNECTION_STRING
+    read -p "Azure Storage Container Name: " AZURE_STORAGE_CONTAINER_NAME
+    read -p "Azure Storage Account Key: " AZURE_STORAGE_ACCOUNT_KEY
+    read -p "Azure Tenant ID: " AZURE_TENANT_ID
+    read -p "Azure Client ID: " AZURE_CLIENT_ID
+    read -p "Azure Client Secret: " AZURE_CLIENT_SECRET
+    
+    echo "File Size Limits:"
+    read -p "Max File Size in bytes (default: 524288000): " MAX_FILE_SIZE
+    MAX_FILE_SIZE=${MAX_FILE_SIZE:-524288000}
+    read -p "Max Local File Size in bytes (default: 209715200): " MAX_LOCAL_FILESIZE
+    MAX_LOCAL_FILESIZE=${MAX_LOCAL_FILESIZE:-209715200}
+    read -p "Max Local File Size in MB (default: 100): " MAX_LOCAL_FILESIZE_MB
+    MAX_LOCAL_FILESIZE_MB=${MAX_LOCAL_FILESIZE_MB:-100}
+    
+    echo "Rate Limiting:"
+    read -p "Rate Limit Window in ms (default: 60000): " RATE_LIMIT_WINDOW_MS
+    RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-60000}
+    read -p "Rate Limit Max Requests (default: 10): " RATE_LIMIT_MAX_REQUESTS
+    RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-10}
+    
+    # Frontend variables
+    read -p "Next.js Public API URL (default: http://localhost:5050): " NEXT_PUBLIC_API_URL
+    NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5050}
+    
+    echo "Frontend Azure Storage Configuration:"
+    read -p "Next.js Public Azure Storage Account Name: " NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME
+    read -p "Next.js Public Azure Storage Container Name: " NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME
+    read -p "Next.js Public Azure Storage SAS Token: " NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN
+    
+    echo "Frontend App Configuration:"
+    read -p "Next.js Public Max File Size in bytes (default: 524288000): " NEXT_PUBLIC_MAX_FILE_SIZE
+    NEXT_PUBLIC_MAX_FILE_SIZE=${NEXT_PUBLIC_MAX_FILE_SIZE:-524288000}
+    read -p "Next.js Public Max Local File Size in bytes (default: 209715200): " NEXT_PUBLIC_MAX_LOCAL_FILESIZE
+    NEXT_PUBLIC_MAX_LOCAL_FILESIZE=${NEXT_PUBLIC_MAX_LOCAL_FILESIZE:-209715200}
+    
+    # Export variables for use in the script
+    export OPENAI_API_KEY OPENAI_MODEL YOUTUBE_API_KEY
+    export AZURE_STORAGE_AUTH_TYPE AZURE_STORAGE_ACCOUNT_NAME AZURE_STORAGE_CONNECTION_STRING
+    export AZURE_STORAGE_CONTAINER_NAME AZURE_STORAGE_ACCOUNT_KEY AZURE_TENANT_ID
+    export AZURE_CLIENT_ID AZURE_CLIENT_SECRET
+    export MAX_FILE_SIZE MAX_LOCAL_FILESIZE MAX_LOCAL_FILESIZE_MB
+    export RATE_LIMIT_WINDOW_MS RATE_LIMIT_MAX_REQUESTS
+    export NEXT_PUBLIC_API_URL NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME
+    export NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN
+    export NEXT_PUBLIC_MAX_FILE_SIZE NEXT_PUBLIC_MAX_LOCAL_FILESIZE
+}
+
+# Function to create environment files
+create_env_files() {
+    local base_path="$1"
+    
+    # Create backend .env
+    cat > "$base_path/backend/.env" << EOL
+# OpenAI Configuration
+OPENAI_API_KEY=${OPENAI_API_KEY}
+OPENAI_MODEL=${OPENAI_MODEL}
+
+# YouTube Configuration
+YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+
+# Azure Storage Configuration
+AZURE_STORAGE_AUTH_TYPE=${AZURE_STORAGE_AUTH_TYPE}
+AZURE_STORAGE_ACCOUNT_NAME=${AZURE_STORAGE_ACCOUNT_NAME}
+AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+AZURE_STORAGE_CONTAINER_NAME=${AZURE_STORAGE_CONTAINER_NAME}
+AZURE_STORAGE_ACCOUNT_KEY=${AZURE_STORAGE_ACCOUNT_KEY}
+AZURE_TENANT_ID=${AZURE_TENANT_ID}
+AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+
+# File Size Limits
+MAX_FILE_SIZE=${MAX_FILE_SIZE}
+MAX_LOCAL_FILESIZE=${MAX_LOCAL_FILESIZE}
+MAX_LOCAL_FILESIZE_MB=${MAX_LOCAL_FILESIZE_MB}
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS}
+EOL
+
+    # Create frontend .env
+    cat > "$base_path/frontend/.env" << EOL
+NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# Azure Storage Configuration
+NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME=${NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME}
+NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME=${NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME}
+NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN=${NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN}
+
+# App Configuration
+NEXT_PUBLIC_MAX_FILE_SIZE=${NEXT_PUBLIC_MAX_FILE_SIZE}
+NEXT_PUBLIC_MAX_LOCAL_FILESIZE=${NEXT_PUBLIC_MAX_LOCAL_FILESIZE}
+EOL
+}
+
 # Install required packages
 install_packages() {
     echo "Installing required packages..."
@@ -168,17 +280,9 @@ setup_apps() {
             echo "Copying docker-compose.yml to $base_path"
             cp docker-compose.yml "$base_path/" || handle_error "Failed to copy docker-compose.yml"
             
-            # Create .env files
+            # Create environment files
             echo "Creating environment files..."
-            cat > "$base_path/backend/.env" << 'EOL'
-NODE_ENV=production
-PORT=5050
-EOL
-            
-            cat > "$base_path/frontend/.env" << 'EOL'
-NODE_ENV=production
-PORT=3000
-EOL
+            create_env_files "$base_path"
             
             # Create certbot directories
             mkdir -p "$nginx_path/certbot/conf" || handle_error "Failed to create certbot conf directory"
@@ -192,6 +296,10 @@ EOL
 
 # Main execution
 echo "Starting VM setup..."
+
+# Prompt for environment variables
+prompt_env_variables
+
 install_packages
 install_docker
 setup_apps

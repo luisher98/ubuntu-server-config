@@ -56,6 +56,30 @@ jobs:
             cd ~/apps/deployment
             git pull
             
+            # Export environment variables from GitHub Secrets
+            export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+            export OPENAI_MODEL="${{ secrets.OPENAI_MODEL }}"
+            export YOUTUBE_API_KEY="${{ secrets.YOUTUBE_API_KEY }}"
+            export AZURE_STORAGE_AUTH_TYPE="${{ secrets.AZURE_STORAGE_AUTH_TYPE }}"
+            export AZURE_STORAGE_ACCOUNT_NAME="${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}"
+            export AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}"
+            export AZURE_STORAGE_CONTAINER_NAME="${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}"
+            export AZURE_STORAGE_ACCOUNT_KEY="${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}"
+            export AZURE_TENANT_ID="${{ secrets.AZURE_TENANT_ID }}"
+            export AZURE_CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
+            export AZURE_CLIENT_SECRET="${{ secrets.AZURE_CLIENT_SECRET }}"
+            export MAX_FILE_SIZE="${{ secrets.MAX_FILE_SIZE }}"
+            export MAX_LOCAL_FILESIZE="${{ secrets.MAX_LOCAL_FILESIZE }}"
+            export MAX_LOCAL_FILESIZE_MB="${{ secrets.MAX_LOCAL_FILESIZE_MB }}"
+            export RATE_LIMIT_WINDOW_MS="${{ secrets.RATE_LIMIT_WINDOW_MS }}"
+            export RATE_LIMIT_MAX_REQUESTS="${{ secrets.RATE_LIMIT_MAX_REQUESTS }}"
+            export NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}"
+            export NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME="${{ secrets.NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME }}"
+            export NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME="${{ secrets.NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME }}"
+            export NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN="${{ secrets.NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN }}"
+            export NEXT_PUBLIC_MAX_FILE_SIZE="${{ secrets.NEXT_PUBLIC_MAX_FILE_SIZE }}"
+            export NEXT_PUBLIC_MAX_LOCAL_FILESIZE="${{ secrets.NEXT_PUBLIC_MAX_LOCAL_FILESIZE }}"
+            
             # Run setup-vm.sh to apply any configuration changes
             if ! ./setup-vm.sh; then
               echo "Error: setup-vm.sh failed"
