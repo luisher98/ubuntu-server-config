@@ -10,7 +10,6 @@ on:
       - 'frontend-nginx.conf'
       - 'docker-compose.yml'
       - 'nginx.conf'
-      - 'apps.yaml'
       - 'setup-vm.sh'
 
 jobs:
@@ -24,23 +23,73 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
-          username: ubuntu
+          username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Update deployment repository
-            cd /home/ubuntu/apps/deployment
-            git pull
+            # Log deployment info
+            echo "Deploying to $(hostname)"
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
             
-            # Get frontend path from apps.yaml
-            FRONTEND_PATH=$(yq e '.groups.video-summary.base_path' apps.yaml)/frontend
+            # Check if deployment directory exists
+            if [ ! -d "~/apps/deployment" ]; then
+              echo "Error: Deployment directory not found. Please run setup-vm.sh first."
+              exit 1
+            fi
+            
+            # Check if frontend directory exists
+            if [ ! -d "~/apps/video-summary/frontend" ]; then
+              echo "Error: Frontend directory not found. Please run setup-vm.sh first."
+              exit 1
+            fi
+            
+            # Create backup of current frontend
+            BACKUP_DIR="~/apps/video-summary/frontend_backup_$(date +%Y%m%d_%H%M%S)"
+            echo "Creating backup in $BACKUP_DIR"
+            cp -r ~/apps/video-summary/frontend "$BACKUP_DIR"
+            
+            # Update deployment repository
+            cd ~/apps/deployment
+            git pull
             
             # Update frontend repository
-            cd $FRONTEND_PATH
-            git pull
+            cd ~/apps/video-summary/frontend
+            if ! git pull; then
+              echo "Error: Failed to update frontend repository"
+              exit 1
+            fi
             
             # Copy frontend-nginx.conf to the frontend build context
-            cp /home/ubuntu/apps/deployment/frontend-nginx.conf $FRONTEND_PATH/nginx.conf
+            echo "Copying nginx configuration..."
+            if ! cp ~/apps/deployment/frontend-nginx.conf ~/apps/video-summary/frontend/nginx.conf; then
+              echo "Error: Failed to copy nginx configuration"
+              exit 1
+            fi
             
             # Deploy using docker compose
-            cd /home/ubuntu/apps/deployment
-            docker compose -f docker-compose.yml up -d --build frontend nginx 
+            cd ~/apps/deployment
+            echo "Deploying frontend..."
+            if ! docker compose -f docker-compose.yml up -d --build frontend nginx; then
+              echo "Error: Failed to deploy frontend"
+              echo "Restoring from backup..."
+              rm -rf ~/apps/video-summary/frontend
+              mv "$BACKUP_DIR" ~/apps/video-summary/frontend
+              docker compose -f docker-compose.yml up -d --build frontend nginx
+              exit 1
+            fi
+            
+            # Verify frontend is running
+            echo "Verifying frontend..."
+            if ! docker compose -f docker-compose.yml ps | grep -q "frontend.*Up"; then
+              echo "Error: Frontend failed to start"
+              exit 1
+            fi
+            
+            # Health check
+            echo "Running health check..."
+            if ! curl -f http://localhost:3000; then
+              echo "Error: Frontend health check failed"
+              exit 1
+            fi
+            
+            echo "✅ Frontend deployment completed successfully" 

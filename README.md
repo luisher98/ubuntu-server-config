@@ -1,6 +1,6 @@
 # Ubuntu Server Configuration
 
-This repository contains scripts and configurations for setting up a development environment on Ubuntu 22.04 LTS or later. It includes deployment scripts for various applications and services.
+This repository contains scripts and configurations for setting up and deploying a video summary application on Ubuntu 22.04 LTS or later. It includes deployment scripts, Docker configurations, and GitHub Actions workflows for automated deployment.
 
 ## Prerequisites
 
@@ -9,7 +9,31 @@ This repository contains scripts and configurations for setting up a development
 - Docker
 - A user with sudo privileges
 
-## Quick Start Guide
+## Enabling GitHub Actions
+
+To enable automated deployments:
+
+1. Fork or clone this repository to your GitHub account
+
+2. Go to your repository's Settings > Secrets and Variables > Actions
+
+3. Add the following secrets:
+   - `SERVER_IP`: Your server's IP address
+   - `SERVER_USER`: SSH username for the server
+   - `SSH_PRIVATE_KEY`: Your SSH private key for server access
+   - `VPN_CONFIG`: WireGuard VPN configuration (optional)
+
+4. Enable GitHub Actions:
+   - Go to your repository's Actions tab
+   - Click "Enable Actions"
+   - Select "Allow all actions and reusable workflows"
+
+5. Verify workflow permissions:
+   - Go to Settings > Actions > General
+   - Under "Workflow permissions", select "Read and write permissions"
+   - Save the changes
+
+## Initial Setup
 
 1. Clean up any existing installations:
    ```bash
@@ -22,10 +46,10 @@ This repository contains scripts and configurations for setting up a development
    git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment
    ```
 
-3. Make the setup scripts executable:
+3. Make the setup script executable:
    ```bash
    cd ~/apps/deployment
-   chmod +x setup-vm.sh setup-env.sh setup-vpn.sh
+   chmod +x setup-vm.sh
    ```
 
 4. Run the VM setup script:
@@ -37,30 +61,18 @@ This repository contains scripts and configurations for setting up a development
 
 6. Start the applications:
    ```bash
-   # Copy setup-env.sh to the video-summary directory
    cd ~/apps/video-summary
-   cp ~/apps/deployment/setup-env.sh .
-   cp ~/apps/deployment/docker-compose.yml .
-   cp ~/apps/deployment/nginx.conf nginx/
-   
-   # Make setup-env.sh executable and run it
-   chmod +x setup-env.sh
-   ./setup-env.sh
-   
-   # Start the services
    docker compose up -d
    ```
 
 ## Directory Structure
 
-The setup script will create the following directory structure in your home directory:
+The setup script creates the following directory structure:
 
 ```
 ~/apps/
 ├── deployment/          # Contains deployment scripts and configurations
 │   ├── setup-vm.sh     # VM setup script
-│   ├── setup-env.sh    # Environment setup script
-│   ├── setup-vpn.sh    # VPN setup script
 │   ├── docker-compose.yml
 │   └── nginx.conf
 └── video-summary/      # Main application directory
@@ -72,7 +84,7 @@ The setup script will create the following directory structure in your home dire
 
 ## Application Configuration
 
-The setup script automatically configures the following applications:
+The setup script configures the following applications:
 
 1. **Backend**
    - Repository: https://github.com/luisher98/video-to-summary-backend.git
@@ -88,10 +100,39 @@ The setup script automatically configures the following applications:
    - Image: nginx:alpine
    - Ports: 80, 443
    - Configuration: nginx.conf
+   - SSL certificates: /etc/letsencrypt
+
+## Automated Deployment
+
+The repository includes GitHub Actions workflows for automated deployment:
+
+1. **Server Configuration** (deploy-config.yml)
+   - Triggers on changes to configuration files
+   - Updates server configuration
+   - Restarts all services
+   - Runs health checks
+
+2. **Backend Deployment** (deploy-backend.yml)
+   - Triggers on backend-related changes
+   - Updates backend code
+   - Rebuilds and restarts backend service
+   - Verifies backend health
+
+3. **Frontend Deployment** (deploy-frontend.yml)
+   - Triggers on frontend-related changes
+   - Updates frontend code
+   - Rebuilds and restarts frontend service
+   - Verifies frontend health
+
+Each workflow includes:
+- Automatic backups before deployment
+- Health checks after deployment
+- Rollback on failure
+- Detailed logging
 
 ## Troubleshooting
 
-If you encounter any issues during setup:
+If you encounter issues during setup:
 
 1. Check if all required packages are installed:
    ```bash
@@ -111,6 +152,14 @@ If you encounter any issues during setup:
    ```
 
 4. If Docker commands fail after setup, try logging out and back in.
+
+5. Check service logs:
+   ```bash
+   docker compose logs
+   docker compose logs backend
+   docker compose logs frontend
+   docker compose logs nginx
+   ```
 
 ## Handling System Updates
 

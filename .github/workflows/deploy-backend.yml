@@ -9,9 +9,7 @@ on:
       - 'backend.dockerignore'
       - 'docker-compose.yml'
       - 'nginx.conf'
-      - 'apps.yaml'
       - 'setup-vm.sh'
-      - 'manage-apps.sh'
 
 jobs:
   deploy:
@@ -24,20 +22,66 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
-          username: ubuntu
+          username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Update deployment repository
-            cd /home/ubuntu/apps/deployment
-            git pull
+            # Log deployment info
+            echo "Deploying to $(hostname)"
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
             
-            # Get backend path from apps.yaml
-            BACKEND_PATH=$(yq e '.groups.video-summary.base_path' apps.yaml)/backend
+            # Check if deployment directory exists
+            if [ ! -d "~/apps/deployment" ]; then
+              echo "Error: Deployment directory not found. Please run setup-vm.sh first."
+              exit 1
+            fi
+            
+            # Check if backend directory exists
+            if [ ! -d "~/apps/video-summary/backend" ]; then
+              echo "Error: Backend directory not found. Please run setup-vm.sh first."
+              exit 1
+            fi
+            
+            # Create backup of current backend
+            BACKUP_DIR="~/apps/video-summary/backend_backup_$(date +%Y%m%d_%H%M%S)"
+            echo "Creating backup in $BACKUP_DIR"
+            cp -r ~/apps/video-summary/backend "$BACKUP_DIR"
+            
+            # Update deployment repository
+            cd ~/apps/deployment
+            git pull
             
             # Update backend repository
-            cd $BACKEND_PATH
-            git pull
+            cd ~/apps/video-summary/backend
+            if ! git pull; then
+              echo "Error: Failed to update backend repository"
+              exit 1
+            fi
             
             # Deploy using docker compose
-            cd /home/ubuntu/apps/deployment
-            docker compose -f docker-compose.yml up -d --build backend nginx 
+            cd ~/apps/deployment
+            echo "Deploying backend..."
+            if ! docker compose -f docker-compose.yml up -d --build backend nginx; then
+              echo "Error: Failed to deploy backend"
+              echo "Restoring from backup..."
+              rm -rf ~/apps/video-summary/backend
+              mv "$BACKUP_DIR" ~/apps/video-summary/backend
+              docker compose -f docker-compose.yml up -d --build backend nginx
+              exit 1
+            fi
+            
+            # Verify backend is running
+            echo "Verifying backend..."
+            if ! docker compose -f docker-compose.yml ps | grep -q "backend.*Up"; then
+              echo "Error: Backend failed to start"
+              exit 1
+            fi
+            
+            # Health check
+            echo "Running health check..."
+            if ! curl -f http://localhost:5050/health; then
+              echo "Error: Backend health check failed"
+              exit 1
+            fi
+            
+            echo "✅ Backend deployment completed successfully" 

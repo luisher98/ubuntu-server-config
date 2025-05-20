@@ -5,9 +5,7 @@ on:
     branches: [ main ]
     paths:
       - '.github/workflows/deploy-config.yml'
-      - 'apps.yaml'
       - 'setup-vm.sh'
-      - 'manage-apps.sh'
       - 'docker-compose.yml'
       - 'nginx.conf'
       - 'frontend-nginx.conf'
@@ -35,22 +33,74 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
-          username: ubuntu
+          username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Log deployment info
+            echo "Deploying to $(hostname)"
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
+            
+            # Check if deployment directory exists
+            if [ ! -d "~/apps/deployment" ]; then
+              echo "Error: Deployment directory not found. Please run setup-vm.sh first."
+              exit 1
+            fi
+            
+            # Create backup of current configuration
+            BACKUP_DIR="~/apps/deployment_backup_$(date +%Y%m%d_%H%M%S)"
+            echo "Creating backup in $BACKUP_DIR"
+            cp -r ~/apps/deployment "$BACKUP_DIR"
+            
             # Update deployment repository
-            cd /home/ubuntu/apps/deployment
+            cd ~/apps/deployment
             git pull
             
             # Run setup-vm.sh to apply any configuration changes
-            ./setup-vm.sh
+            if ! ./setup-vm.sh; then
+              echo "Error: setup-vm.sh failed"
+              echo "Restoring from backup..."
+              rm -rf ~/apps/deployment
+              mv "$BACKUP_DIR" ~/apps/deployment
+              exit 1
+            fi
             
             # Restart all services to apply changes
-            docker compose -f docker-compose.yml down
-            docker compose -f docker-compose.yml up -d
+            echo "Restarting services..."
+            if ! docker compose -f docker-compose.yml down; then
+              echo "Error: Failed to stop services"
+              exit 1
+            fi
+            
+            if ! docker compose -f docker-compose.yml up -d; then
+              echo "Error: Failed to start services"
+              echo "Restoring from backup..."
+              rm -rf ~/apps/deployment
+              mv "$BACKUP_DIR" ~/apps/deployment
+              docker compose -f docker-compose.yml up -d
+              exit 1
+            fi
             
             # Verify services are running
-            docker compose -f docker-compose.yml ps
+            echo "Verifying services..."
+            if ! docker compose -f docker-compose.yml ps | grep -q "Up"; then
+              echo "Error: Services failed to start"
+              exit 1
+            fi
+            
+            # Health checks
+            echo "Running health checks..."
+            if ! curl -f http://localhost:5050/health; then
+              echo "Error: Backend health check failed"
+              exit 1
+            fi
+            
+            if ! curl -f http://localhost:3000; then
+              echo "Error: Frontend health check failed"
+              exit 1
+            fi
+            
+            echo "✅ Deployment completed successfully"
 
       - name: Cleanup VPN
         if: always()

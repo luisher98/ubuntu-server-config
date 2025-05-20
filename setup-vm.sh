@@ -5,7 +5,7 @@ set -e
 
 # Configuration
 APPS_CONFIG=(
-    "video-summary:/home/uoc/apps/video-summary:video-summary-network"
+    "video-summary:video-summary:video-summary-network"
 )
 
 APP_REPOS=(
@@ -24,56 +24,40 @@ USER_HOME=$(eval echo ~$USER)
 APPS_DIR="$USER_HOME/apps"
 DEPLOYMENT_DIR="$APPS_DIR/deployment"
 
-# Check if yq is installed
-check_yq() {
-    if ! command -v yq &> /dev/null; then
-        echo "Installing yq..."
-        
-        # Check if Go is installed
-        if ! command -v go &> /dev/null; then
-            echo "Installing Go..."
-            sudo apt-get update
-            sudo apt-get install -y golang-go
-            if [ $? -ne 0 ]; then
-                echo "Error: Failed to install Go"
-                exit 1
-            fi
-        else
-            echo "Go is already installed"
-        fi
-        
-        # Install yq using go install with a specific version compatible with Go 1.18
-        echo "Installing yq using go install..."
-        if ! go install github.com/mikefarah/yq/v3@latest; then
-            echo "Error: Failed to install yq"
-            exit 1
-        fi
-        
-        # Create symlink to /usr/local/bin if it doesn't exist
-        if [ ! -f "/usr/local/bin/yq" ]; then
-            sudo ln -s "$HOME/go/bin/yq" /usr/local/bin/yq
-            if [ $? -ne 0 ]; then
-                echo "Error: Failed to create yq symlink"
-                exit 1
-            fi
-        fi
-        
-        # Verify installation
-        if ! yq --version &> /dev/null; then
-            echo "Error: Failed to verify yq installation"
-            exit 1
-        fi
-        
-        echo "yq installed successfully"
-    else
-        echo "yq is already installed"
+# Function to handle errors
+handle_error() {
+    echo "Error: $1"
+    exit 1
+}
+
+# Function to check if a command exists
+check_command() {
+    if ! command -v "$1" &> /dev/null; then
+        handle_error "$1 is not installed"
+    fi
+}
+
+# Function to check if a file exists
+check_file() {
+    if [ ! -f "$1" ]; then
+        handle_error "$1 does not exist"
+    fi
+}
+
+# Function to backup existing directory
+backup_directory() {
+    local dir="$1"
+    if [ -d "$dir" ]; then
+        local backup_dir="${dir}_backup_$(date +%Y%m%d_%H%M%S)"
+        echo "Backing up existing directory to $backup_dir"
+        mv "$dir" "$backup_dir" || handle_error "Failed to backup $dir"
     fi
 }
 
 # Install required packages
 install_packages() {
     echo "Installing required packages..."
-    sudo apt-get update
+    sudo apt-get update || handle_error "Failed to update package list"
     sudo apt-get install -y \
         apt-transport-https \
         ca-certificates \
@@ -81,7 +65,7 @@ install_packages() {
         gnupg \
         lsb-release \
         git \
-        ufw
+        ufw || handle_error "Failed to install required packages"
 }
 
 # Install Docker
@@ -92,22 +76,22 @@ install_docker() {
     sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
     
     # Add Docker's official GPG key
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg || handle_error "Failed to add Docker GPG key"
     
     # Set up the repository
     echo \
         "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null || handle_error "Failed to set up Docker repository"
     
     # Install Docker Engine
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    sudo apt-get update || handle_error "Failed to update package list"
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io || handle_error "Failed to install Docker"
     
     # Add user to docker group
-    sudo usermod -aG docker $USER
+    sudo usermod -aG docker $USER || handle_error "Failed to add user to docker group"
     
     # Create Docker CLI plugins directory
-    sudo mkdir -p /usr/local/lib/docker/cli-plugins
+    sudo mkdir -p /usr/local/lib/docker/cli-plugins || handle_error "Failed to create Docker CLI plugins directory"
     
     # Get system architecture
     ARCH=$(uname -m)
@@ -116,31 +100,40 @@ install_docker() {
     elif [ "$ARCH" = "aarch64" ]; then
         ARCH="aarch64"
     else
-        echo "Unsupported architecture: $ARCH"
-        exit 1
+        handle_error "Unsupported architecture: $ARCH"
     fi
     
     # Download and install Docker Compose plugin
-    sudo curl -SL "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose
-    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+    sudo curl -SL "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose || handle_error "Failed to download Docker Compose"
+    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose || handle_error "Failed to make Docker Compose executable"
 }
 
 # Setup application groups
 setup_apps() {
     echo "Setting up application groups..."
     
+    # Check required files
+    check_file "docker-compose.yml"
+    check_file "nginx.conf"
+    
     # Create base apps directory
-    mkdir -p "$APPS_DIR"
+    mkdir -p "$APPS_DIR" || handle_error "Failed to create apps directory"
     
     # Process each app group
     for config in "${APPS_CONFIG[@]}"; do
-        IFS=':' read -r group base_path network <<< "$config"
+        IFS=':' read -r group app_name network <<< "$config"
         echo "Processing group: $group"
+        
+        # Set base path using USER_HOME
+        base_path="$APPS_DIR/$app_name"
+        
+        # Backup existing directory if it exists
+        backup_directory "$base_path"
         
         # Create group directory
         echo "Creating group directory: $base_path"
-        mkdir -p "$base_path"
-        chown -R $USER:$USER "$base_path"
+        mkdir -p "$base_path" || handle_error "Failed to create directory: $base_path"
+        chown -R $USER:$USER "$base_path" || handle_error "Failed to set ownership: $base_path"
         
         # Process apps for this group
         for repo_config in "${APP_REPOS[@]}"; do
@@ -153,20 +146,12 @@ setup_apps() {
                 # Handle repository
                 if [ ! -d "$app_path" ]; then
                     echo "Cloning repository: $repo_url"
-                    git clone "$repo_url" "$app_path"
-                    if [ $? -ne 0 ]; then
-                        echo "Failed to clone $repo_url"
-                        exit 1
-                    fi
+                    git clone "$repo_url" "$app_path" || handle_error "Failed to clone $repo_url"
                 else
                     echo "Updating existing repository: $app_name"
-                    cd "$app_path"
-                    git fetch --all
-                    git reset --hard origin/main
-                    if [ $? -ne 0 ]; then
-                        echo "Failed to update $app_name"
-                        exit 1
-                    fi
+                    cd "$app_path" || handle_error "Failed to change directory to $app_path"
+                    git fetch --all || handle_error "Failed to fetch updates for $app_name"
+                    git reset --hard origin/main || handle_error "Failed to reset $app_name to main branch"
                     cd - > /dev/null
                 fi
             fi
@@ -175,18 +160,38 @@ setup_apps() {
         # Special case for nginx
         if [ "$group" = "video-summary" ]; then
             nginx_path="$base_path/nginx"
-            mkdir -p "$nginx_path"
-            if [ -f "nginx.conf" ]; then
-                echo "Copying nginx.conf to $nginx_path"
-                cp nginx.conf "$nginx_path/"
-            fi
+            mkdir -p "$nginx_path" || handle_error "Failed to create nginx directory"
+            
+            echo "Copying nginx.conf to $nginx_path"
+            cp nginx.conf "$nginx_path/" || handle_error "Failed to copy nginx.conf"
+            
+            echo "Copying docker-compose.yml to $base_path"
+            cp docker-compose.yml "$base_path/" || handle_error "Failed to copy docker-compose.yml"
+            
+            # Create .env files
+            echo "Creating environment files..."
+            cat > "$base_path/backend/.env" << 'EOL'
+NODE_ENV=production
+PORT=5050
+EOL
+            
+            cat > "$base_path/frontend/.env" << 'EOL'
+NODE_ENV=production
+PORT=3000
+EOL
+            
+            # Create certbot directories
+            mkdir -p "$nginx_path/certbot/conf" || handle_error "Failed to create certbot conf directory"
+            mkdir -p "$nginx_path/certbot/www" || handle_error "Failed to create certbot www directory"
+            chmod 755 "$nginx_path/certbot" || handle_error "Failed to set certbot directory permissions"
+            chmod 755 "$nginx_path/certbot/conf" || handle_error "Failed to set certbot conf directory permissions"
+            chmod 755 "$nginx_path/certbot/www" || handle_error "Failed to set certbot www directory permissions"
         fi
     done
 }
 
 # Main execution
 echo "Starting VM setup..."
-check_yq
 install_packages
 install_docker
 setup_apps
@@ -194,6 +199,4 @@ setup_apps
 echo "✅ Setup complete! Please log out and back in for Docker group changes to take effect."
 echo "After logging back in, you can use the following commands:"
 echo "1. cd $APPS_DIR/video-summary"
-echo "2. ./setup-env.sh"
-echo "3. docker compose up -d" 
-echo "3. docker compose up -d" 
+echo "2. docker compose up -d" 
