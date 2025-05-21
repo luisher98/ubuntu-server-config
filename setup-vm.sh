@@ -177,7 +177,26 @@ install_packages() {
         gnupg \
         lsb-release \
         git \
-        ufw || handle_error "Failed to install required packages"
+        ufw \
+        nodejs \
+        npm \
+        python3 \
+        python3-pip \
+        python-is-python3 || handle_error "Failed to install required packages"
+    
+    # Install TypeScript globally
+    echo "Installing TypeScript..."
+    sudo npm install -g typescript || handle_error "Failed to install TypeScript"
+    
+    # Install Python packages
+    echo "Installing Python packages..."
+    sudo pip3 install --upgrade pip || handle_error "Failed to upgrade pip"
+    sudo pip3 install youtube-dl || handle_error "Failed to install youtube-dl"
+    
+    # Set environment variable to skip Python check for youtube-dl-exec
+    echo "Setting up environment variables..."
+    echo "export YOUTUBE_DL_SKIP_PYTHON_CHECK=1" >> ~/.bashrc
+    export YOUTUBE_DL_SKIP_PYTHON_CHECK=1
 }
 
 # Install Docker
