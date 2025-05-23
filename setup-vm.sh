@@ -4,7 +4,7 @@
 set -e
 
 # Configuration
-CONFIGURE_ENV=false  # Set to true to prompt for environment variables, false to skip
+CONFIGURE_ENV=true  # Set to true to prompt for environment variables, false to skip
 
 APPS_CONFIG=(
     "video-summary:video-summary:video-summary-network"
@@ -172,6 +172,13 @@ EOL
 install_packages() {
     echo "Installing required packages..."
     sudo apt-get update || handle_error "Failed to update package list"
+    
+    # Install Node.js from NodeSource
+    echo "Installing Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || handle_error "Failed to add NodeSource repository"
+    sudo apt-get install -y nodejs || handle_error "Failed to install Node.js"
+    
+    # Install other required packages
     sudo apt-get install -y \
         apt-transport-https \
         ca-certificates \
@@ -180,8 +187,6 @@ install_packages() {
         lsb-release \
         git \
         ufw \
-        nodejs \
-        npm \
         python3 \
         python3-pip \
         python3-venv \
