@@ -4,6 +4,8 @@
 set -e
 
 # Configuration
+CONFIGURE_ENV=false  # Set to true to prompt for environment variables, false to skip
+
 APPS_CONFIG=(
     "video-summary:video-summary:video-summary-network"
 )
@@ -316,8 +318,10 @@ setup_apps() {
 # Main execution
 echo "Starting VM setup..."
 
-# Prompt for environment variables
-prompt_env_variables
+# Only prompt for environment variables if CONFIGURE_ENV is true
+if [ "$CONFIGURE_ENV" = true ]; then
+    prompt_env_variables
+fi
 
 install_packages
 install_docker
