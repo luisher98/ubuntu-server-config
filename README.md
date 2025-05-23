@@ -35,6 +35,13 @@ To enable automated deployments:
 
 ## Initial Setup
 
+### Quick Setup
+Run this single command to set up everything:
+```bash
+cd && rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config && mkdir -p ~/apps && git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment && cd ~/apps/deployment && chmod +x setup-vm.sh && ./setup-vm.sh
+```
+
+### Detailed Setup Steps
 1. Clean up any existing installations:
    ```bash
    rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config

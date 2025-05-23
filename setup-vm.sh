@@ -184,16 +184,29 @@ install_packages() {
         npm \
         python3 \
         python3-pip \
+        python3-venv \
         python-is-python3 || handle_error "Failed to install required packages"
     
     # Install TypeScript globally
     echo "Installing TypeScript..."
     sudo npm install -g typescript || handle_error "Failed to install TypeScript"
     
-    # Install Python packages
+    # Create and activate Python virtual environment
+    echo "Setting up Python virtual environment..."
+    python3 -m venv ~/venv || handle_error "Failed to create Python virtual environment"
+    source ~/venv/bin/activate || handle_error "Failed to activate Python virtual environment"
+    
+    # Install Python packages in virtual environment
     echo "Installing Python packages..."
-    sudo pip3 install --upgrade pip || handle_error "Failed to upgrade pip"
-    sudo pip3 install youtube-dl || handle_error "Failed to install youtube-dl"
+    pip install --upgrade pip || handle_error "Failed to upgrade pip"
+    pip install youtube-dl || handle_error "Failed to install youtube-dl"
+    
+    # Deactivate virtual environment
+    deactivate
+    
+    # Add virtual environment activation to .bashrc
+    echo "Adding virtual environment configuration to .bashrc..."
+    echo "source ~/venv/bin/activate" >> ~/.bashrc
     
     # Set environment variable to skip Python check for youtube-dl-exec
     echo "Setting up environment variables..."
