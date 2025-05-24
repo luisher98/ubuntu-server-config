@@ -10,6 +10,157 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# =============================================
+# Configuration Section
+# =============================================
+
+# Script Configuration
+CONFIGURE_ENV=true  # Set to true to prompt for environment variables, false to skip
+ENVIRONMENT=""      # Will be set to 'development' or 'production'
+
+# Directory Configuration
+USER_HOME=$(eval echo ~$USER)
+APPS_DIR="$USER_HOME/apps"
+DEPLOYMENT_DIR="$APPS_DIR/deployment"
+
+# Application Groups Configuration
+# Format: "group_name:app_name:network_name"
+declare -A APP_GROUPS=(
+    ["video-summary"]="video-summary:video-summary:video-summary-network"
+    # Add more app groups here following the same format
+)
+
+# Application Repositories Configuration
+# Format: "group_name:app_name:repo_url"
+declare -A APP_REPOSITORIES=(
+    ["video-summary-backend"]="video-summary:backend:https://github.com/luisher98/video-to-summary-backend.git"
+    ["video-summary-frontend"]="video-summary:frontend:https://github.com/luisher98/video-to-summary-frontend.git"
+    # Add more repositories here following the same format
+)
+
+# Package Installation Configuration
+# Base packages required for all environments
+declare -A BASE_PACKAGES=(
+    ["apt-transport-https"]="true"
+    ["ca-certificates"]="true"
+    ["curl"]="true"
+    ["gnupg"]="true"
+    ["lsb-release"]="true"
+    ["git"]="true"
+    ["ufw"]="true"
+    ["python3"]="true"
+    ["python3-pip"]="true"
+    ["python3-venv"]="true"
+    ["python-is-python3"]="true"
+    ["ffmpeg"]="true"
+    ["wget"]="true"
+    ["unzip"]="true"
+    ["htop"]="true"
+    ["net-tools"]="true"
+)
+
+# Development-specific packages
+declare -A DEV_PACKAGES=(
+    ["nodejs"]="true"
+    ["typescript"]="true"
+    ["youtube-dl"]="true"
+    ["yt-dlp"]="true"
+)
+
+# Production-specific packages
+declare -A PROD_PACKAGES=(
+    ["certbot"]="true"
+    ["python3-certbot-nginx"]="true"
+)
+
+# Docker Configuration
+DOCKER_COMPOSE_VERSION="v2.24.5"
+DOCKER_COMPOSE_URL="https://github.com/docker/compose/releases/download"
+
+# Node.js Configuration
+NODE_VERSION="20.x"
+NODE_SOURCE_URL="https://deb.nodesource.com/setup_20.x"
+
+# Python Configuration
+PYTHON_VENV_DIR="$USER_HOME/venv"
+PYTHON_PACKAGES=(
+    "youtube-dl"
+    "yt-dlp"
+)
+
+# Environment Variables Configuration
+# Default values for environment variables
+declare -A ENV_DEFAULTS=(
+    ["OPENAI_MODEL"]="gpt-3.5-turbo"
+    ["AZURE_STORAGE_AUTH_TYPE"]="servicePrincipal"
+    ["MAX_FILE_SIZE"]="524288000"
+    ["MAX_LOCAL_FILESIZE"]="209715200"
+    ["MAX_LOCAL_FILESIZE_MB"]="100"
+    ["RATE_LIMIT_WINDOW_MS"]="60000"
+    ["RATE_LIMIT_MAX_REQUESTS"]="10"
+    ["NEXT_PUBLIC_API_URL"]="http://localhost:5050"
+)
+
+# Required environment variables (must be set by user)
+declare -A REQUIRED_ENV_VARS=(
+    ["OPENAI_API_KEY"]="OpenAI API Key"
+    ["YOUTUBE_API_KEY"]="YouTube API Key"
+    ["AZURE_STORAGE_ACCOUNT_NAME"]="Azure Storage Account Name"
+    ["AZURE_STORAGE_CONNECTION_STRING"]="Azure Storage Connection String"
+    ["AZURE_STORAGE_CONTAINER_NAME"]="Azure Storage Container Name"
+    ["AZURE_STORAGE_ACCOUNT_KEY"]="Azure Storage Account Key"
+    ["AZURE_TENANT_ID"]="Azure Tenant ID"
+    ["AZURE_CLIENT_ID"]="Azure Client ID"
+    ["AZURE_CLIENT_SECRET"]="Azure Client Secret"
+)
+
+# Production-specific required variables
+declare -A PROD_REQUIRED_ENV_VARS=(
+    ["ADMIN_EMAIL"]="Admin Email (for SSL certificates)"
+    ["DOMAIN_NAME"]="Domain Name (e.g., api.yourdomain.com)"
+)
+
+# Environment File Templates Configuration
+# Backend environment file sections
+declare -A BACKEND_ENV_SECTIONS=(
+    ["environment"]="Environment Configuration"
+    ["openai"]="OpenAI Configuration"
+    ["youtube"]="YouTube Configuration"
+    ["azure"]="Azure Storage Configuration"
+    ["filesize"]="File Size Limits"
+    ["ratelimit"]="Rate Limiting"
+    ["production"]="Production Configuration"
+)
+
+# Backend environment variables by section
+declare -A BACKEND_ENV_VARS=(
+    ["environment"]="NODE_ENV"
+    ["openai"]="OPENAI_API_KEY OPENAI_MODEL"
+    ["youtube"]="YOUTUBE_API_KEY"
+    ["azure"]="AZURE_STORAGE_AUTH_TYPE AZURE_STORAGE_ACCOUNT_NAME AZURE_STORAGE_CONNECTION_STRING AZURE_STORAGE_CONTAINER_NAME AZURE_STORAGE_ACCOUNT_KEY AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET"
+    ["filesize"]="MAX_FILE_SIZE MAX_LOCAL_FILESIZE MAX_LOCAL_FILESIZE_MB"
+    ["ratelimit"]="RATE_LIMIT_WINDOW_MS RATE_LIMIT_MAX_REQUESTS"
+    ["production"]="ADMIN_EMAIL DOMAIN"
+)
+
+# Frontend environment file sections
+declare -A FRONTEND_ENV_SECTIONS=(
+    ["api"]="API Configuration"
+    ["azure"]="Azure Storage Configuration"
+    ["app"]="App Configuration"
+)
+
+# Frontend environment variables by section
+declare -A FRONTEND_ENV_VARS=(
+    ["api"]="NEXT_PUBLIC_API_URL"
+    ["azure"]="NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN"
+    ["app"]="NEXT_PUBLIC_MAX_FILE_SIZE NEXT_PUBLIC_MAX_LOCAL_FILESIZE"
+)
+
+# =============================================
+# End Configuration Section
+# =============================================
+
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -25,19 +176,6 @@ print_warning() {
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
-
-# Configuration
-CONFIGURE_ENV=true  # Set to true to prompt for environment variables, false to skip
-ENVIRONMENT=""  # Will be set to 'development' or 'production'
-
-APPS_CONFIG=(
-    "video-summary:video-summary:video-summary-network"
-)
-
-APP_REPOS=(
-    "video-summary:backend:https://github.com/luisher98/video-to-summary-backend.git"
-    "video-summary:frontend:https://github.com/luisher98/video-to-summary-frontend.git"
-)
 
 # Show help
 show_help() {
@@ -175,76 +313,124 @@ backup_directory() {
     fi
 }
 
+# Function to print section header
+print_section_header() {
+    echo
+    echo -e "${BLUE}+--------------------------------------------------+${NC}"
+    echo -e "${BLUE}|${NC} ${YELLOW}$1${NC}"
+    echo -e "${BLUE}+--------------------------------------------------+${NC}"
+    echo
+}
+
+# Function to print variable prompt
+print_variable_prompt() {
+    local var_name="$1"
+    local description="$2"
+    local default_value="$3"
+    
+    if [[ -n "$default_value" ]]; then
+        echo -e "${BLUE}[?]${NC} ${YELLOW}$description${NC}"
+        echo -e "${BLUE}[>]${NC} Default: ${GREEN}$default_value${NC}"
+        echo -e "${BLUE}[>]${NC} Press Enter to use default or type new value:"
+    else
+        echo -e "${BLUE}[?]${NC} ${YELLOW}$description${NC}"
+        echo -e "${BLUE}[>]${NC} Required value:"
+    fi
+}
+
 # Function to prompt for environment variables
 prompt_env_variables() {
     print_status "Setting up environment variables..."
-    echo "Please enter the following values (press Enter to skip if not needed):"
-    
-    # Backend variables
-    read -p "OpenAI API Key: " OPENAI_API_KEY
-    read -p "OpenAI Model (default: gpt-3.5-turbo): " OPENAI_MODEL
-    OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
-    
-    read -p "YouTube API Key: " YOUTUBE_API_KEY
-    
-    echo "Azure Storage Configuration:"
-    read -p "Azure Storage Auth Type (default: servicePrincipal): " AZURE_STORAGE_AUTH_TYPE
-    AZURE_STORAGE_AUTH_TYPE=${AZURE_STORAGE_AUTH_TYPE:-servicePrincipal}
-    read -p "Azure Storage Account Name: " AZURE_STORAGE_ACCOUNT_NAME
-    read -p "Azure Storage Connection String: " AZURE_STORAGE_CONNECTION_STRING
-    read -p "Azure Storage Container Name: " AZURE_STORAGE_CONTAINER_NAME
-    read -p "Azure Storage Account Key: " AZURE_STORAGE_ACCOUNT_KEY
-    read -p "Azure Tenant ID: " AZURE_TENANT_ID
-    read -p "Azure Client ID: " AZURE_CLIENT_ID
-    read -p "Azure Client Secret: " AZURE_CLIENT_SECRET
-    
-    echo "File Size Limits:"
-    read -p "Max File Size in bytes (default: 524288000): " MAX_FILE_SIZE
-    MAX_FILE_SIZE=${MAX_FILE_SIZE:-524288000}
-    read -p "Max Local File Size in bytes (default: 209715200): " MAX_LOCAL_FILESIZE
-    MAX_LOCAL_FILESIZE=${MAX_LOCAL_FILESIZE:-209715200}
-    read -p "Max Local File Size in MB (default: 100): " MAX_LOCAL_FILESIZE_MB
-    MAX_LOCAL_FILESIZE_MB=${MAX_LOCAL_FILESIZE_MB:-100}
-    
-    echo "Rate Limiting:"
-    read -p "Rate Limit Window in ms (default: 60000): " RATE_LIMIT_WINDOW_MS
-    RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-60000}
-    read -p "Rate Limit Max Requests (default: 10): " RATE_LIMIT_MAX_REQUESTS
-    RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-10}
-    
-    # Frontend variables
-    read -p "Next.js Public API URL (default: http://localhost:5050): " NEXT_PUBLIC_API_URL
-    NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5050}
-    
-    echo "Frontend Azure Storage Configuration:"
-    read -p "Next.js Public Azure Storage Account Name: " NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME
-    read -p "Next.js Public Azure Storage Container Name: " NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME
-    read -p "Next.js Public Azure Storage SAS Token: " NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN
-    
-    echo "Frontend App Configuration:"
-    read -p "Next.js Public Max File Size in bytes (default: 524288000): " NEXT_PUBLIC_MAX_FILE_SIZE
-    NEXT_PUBLIC_MAX_FILE_SIZE=${NEXT_PUBLIC_MAX_FILE_SIZE:-524288000}
-    read -p "Next.js Public Max Local File Size in bytes (default: 209715200): " NEXT_PUBLIC_MAX_LOCAL_FILESIZE
-    NEXT_PUBLIC_MAX_LOCAL_FILESIZE=${NEXT_PUBLIC_MAX_LOCAL_FILESIZE:-209715200}
-    
-    # Production-specific variables
+    echo
+    echo -e "${BLUE}Please enter the following values:${NC}"
+    echo -e "${YELLOW}Required variables are marked with *${NC}"
+    echo
+
+    # Prompt for required variables
+    print_section_header "Required Configuration"
+    for var in "${!REQUIRED_ENV_VARS[@]}"; do
+        print_variable_prompt "$var" "${REQUIRED_ENV_VARS[$var]} *"
+        read -p "> " value
+        if [[ -n "$value" ]]; then
+            export "$var=$value"
+        else
+            print_warning "Warning: ${REQUIRED_ENV_VARS[$var]} is required but was not provided"
+            read -p "Do you want to continue anyway? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                print_error "Setup aborted by user"
+                exit 1
+            fi
+        fi
+    done
+
+    # Prompt for variables with defaults
+    print_section_header "Optional Configuration"
+    for var in "${!ENV_DEFAULTS[@]}"; do
+        print_variable_prompt "$var" "$var" "${ENV_DEFAULTS[$var]}"
+        read -p "> " value
+        export "$var=${value:-${ENV_DEFAULTS[$var]}}"
+    done
+
+    # Prompt for production-specific variables
     if [[ "$ENVIRONMENT" == "production" ]]; then
-        echo "Production Configuration:"
-        read -p "Admin Email (for SSL certificates): " ADMIN_EMAIL
-        read -p "Domain Name (e.g., api.yourdomain.com): " DOMAIN_NAME
-        export ADMIN_EMAIL DOMAIN_NAME
+        print_section_header "Production Configuration"
+        for var in "${!PROD_REQUIRED_ENV_VARS[@]}"; do
+            print_variable_prompt "$var" "${PROD_REQUIRED_ENV_VARS[$var]} *"
+            read -p "> " value
+            if [[ -n "$value" ]]; then
+                export "$var=$value"
+            else
+                print_warning "Warning: ${PROD_REQUIRED_ENV_VARS[$var]} is required for production but was not provided"
+                read -p "Do you want to continue anyway? (y/N): " -n 1 -r
+                echo
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    print_error "Setup aborted by user"
+                    exit 1
+                fi
+            fi
+        done
     fi
-    
-    # Export variables for use in the script
-    export OPENAI_API_KEY OPENAI_MODEL YOUTUBE_API_KEY
-    export AZURE_STORAGE_AUTH_TYPE AZURE_STORAGE_ACCOUNT_NAME AZURE_STORAGE_CONNECTION_STRING
-    export AZURE_STORAGE_CONTAINER_NAME AZURE_STORAGE_ACCOUNT_KEY AZURE_TENANT_ID
-    export AZURE_CLIENT_ID AZURE_CLIENT_SECRET
-    export MAX_FILE_SIZE MAX_LOCAL_FILESIZE MAX_LOCAL_FILESIZE_MB
-    export RATE_LIMIT_WINDOW_MS RATE_LIMIT_MAX_REQUESTS
-    export NEXT_PUBLIC_API_URL NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME
-    export NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN
-    export NEXT_PUBLIC_MAX_FILE_SIZE NEXT_PUBLIC_MAX_LOCAL_FILESIZE
+
+    # Print summary of configuration
+    print_section_header "Configuration Summary"
+    echo -e "${GREEN}Environment:${NC} $ENVIRONMENT"
+    echo
+    echo -e "${GREEN}Required Variables:${NC}"
+    for var in "${!REQUIRED_ENV_VARS[@]}"; do
+        if [[ -n "${!var}" ]]; then
+            echo -e "  ${BLUE}[+]${NC} ${REQUIRED_ENV_VARS[$var]}: ${GREEN}Set${NC}"
+        else
+            echo -e "  ${RED}[-]${NC} ${REQUIRED_ENV_VARS[$var]}: ${RED}Not Set${NC}"
+        fi
+    done
+    echo
+    echo -e "${GREEN}Optional Variables:${NC}"
+    for var in "${!ENV_DEFAULTS[@]}"; do
+        echo -e "  ${BLUE}[*]${NC} $var: ${GREEN}${!var}${NC}"
+    done
+
+    if [[ "$ENVIRONMENT" == "production" ]]; then
+        echo
+        echo -e "${GREEN}Production Variables:${NC}"
+        for var in "${!PROD_REQUIRED_ENV_VARS[@]}"; do
+            if [[ -n "${!var}" ]]; then
+                echo -e "  ${BLUE}[+]${NC} ${PROD_REQUIRED_ENV_VARS[$var]}: ${GREEN}Set${NC}"
+            else
+                echo -e "  ${RED}[-]${NC} ${PROD_REQUIRED_ENV_VARS[$var]}: ${RED}Not Set${NC}"
+            fi
+        done
+    fi
+
+    echo
+    read -p "Do you want to proceed with this configuration? (Y/n): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        print_error "Setup aborted by user"
+        exit 1
+    fi
+
+    print_success "Environment variables configured successfully"
 }
 
 # Function to create environment files
@@ -257,60 +443,61 @@ create_env_files() {
     fi
     
     # Create backend .env
-    cat > "$base_path/backend/.env${env_suffix}" << EOL
-# OpenAI Configuration
-OPENAI_API_KEY=${OPENAI_API_KEY}
-OPENAI_MODEL=${OPENAI_MODEL}
+    print_status "Creating backend environment file..."
+    {
+        # Write each section
+        for section in "${!BACKEND_ENV_SECTIONS[@]}"; do
+            # Skip production section if not in production environment
+            if [[ "$section" == "production" && "$ENVIRONMENT" != "production" ]]; then
+                continue
+            fi
+            
+            # Write section header
+            echo "# ${BACKEND_ENV_SECTIONS[$section]}"
+            
+            # Write variables for this section
+            for var in ${BACKEND_ENV_VARS[$section]}; do
+                if [[ "$var" == "NODE_ENV" ]]; then
+                    echo "${var}=${ENVIRONMENT}"
+                elif [[ "$var" == "DOMAIN" ]]; then
+                    echo "${var}=${DOMAIN_NAME}"
+                else
+                    echo "${var}=${!var}"
+                fi
+            done
+            
+            # Add blank line between sections
+            echo
+        done
+    } > "$base_path/backend/.env${env_suffix}"
 
-# YouTube Configuration
-YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
-
-# Azure Storage Configuration
-AZURE_STORAGE_AUTH_TYPE=${AZURE_STORAGE_AUTH_TYPE}
-AZURE_STORAGE_ACCOUNT_NAME=${AZURE_STORAGE_ACCOUNT_NAME}
-AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
-AZURE_STORAGE_CONTAINER_NAME=${AZURE_STORAGE_CONTAINER_NAME}
-AZURE_STORAGE_ACCOUNT_KEY=${AZURE_STORAGE_ACCOUNT_KEY}
-AZURE_TENANT_ID=${AZURE_TENANT_ID}
-AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
-
-# File Size Limits
-MAX_FILE_SIZE=${MAX_FILE_SIZE}
-MAX_LOCAL_FILESIZE=${MAX_LOCAL_FILESIZE}
-MAX_LOCAL_FILESIZE_MB=${MAX_LOCAL_FILESIZE_MB}
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
-RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS}
-EOL
-
-    # Add production-specific configurations
-    if [[ "$ENVIRONMENT" == "production" ]]; then
-        cat >> "$base_path/backend/.env${env_suffix}" << EOL
-
-# Production Configuration
-NODE_ENV=production
-ADMIN_EMAIL=${ADMIN_EMAIL}
-DOMAIN=${DOMAIN_NAME}
-EOL
-    fi
-
-    # Create frontend .env (development only, production doesn't use frontend in current setup)
+    # Create frontend .env (development only)
     if [[ "$ENVIRONMENT" == "development" ]]; then
-        cat > "$base_path/frontend/.env" << EOL
-NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
-# Azure Storage Configuration
-NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME=${NEXT_PUBLIC_AZURE_STORAGE_ACCOUNT_NAME}
-NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME=${NEXT_PUBLIC_AZURE_STORAGE_CONTAINER_NAME}
-NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN=${NEXT_PUBLIC_AZURE_STORAGE_SAS_TOKEN}
-
-# App Configuration
-NEXT_PUBLIC_MAX_FILE_SIZE=${NEXT_PUBLIC_MAX_FILE_SIZE}
-NEXT_PUBLIC_MAX_LOCAL_FILESIZE=${NEXT_PUBLIC_MAX_LOCAL_FILESIZE}
-EOL
+        print_status "Creating frontend environment file..."
+        {
+            # Write each section
+            for section in "${!FRONTEND_ENV_SECTIONS[@]}"; do
+                # Write section header
+                echo "# ${FRONTEND_ENV_SECTIONS[$section]}"
+                
+                # Write variables for this section
+                for var in ${FRONTEND_ENV_VARS[$section]}; do
+                    echo "${var}=${!var}"
+                done
+                
+                # Add blank line between sections
+                echo
+            done
+        } > "$base_path/frontend/.env"
     fi
+
+    # Set proper permissions
+    chmod 600 "$base_path/backend/.env${env_suffix}" || handle_error "Failed to set permissions for backend .env file"
+    if [[ "$ENVIRONMENT" == "development" ]]; then
+        chmod 600 "$base_path/frontend/.env" || handle_error "Failed to set permissions for frontend .env file"
+    fi
+
+    print_success "Environment files created successfully"
 }
 
 # Install required packages
@@ -318,51 +505,61 @@ install_packages() {
     print_status "Installing required packages..."
     sudo apt-get update || handle_error "Failed to update package list"
     
-    # Install Node.js from NodeSource
-    print_status "Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || handle_error "Failed to add NodeSource repository"
-    sudo apt-get install -y nodejs || handle_error "Failed to install Node.js"
-    
-    # Install base packages including ffmpeg
+    # Install base packages
     print_status "Installing base packages..."
-    sudo apt-get install -y \
-        apt-transport-https \
-        ca-certificates \
-        curl \
-        gnupg \
-        lsb-release \
-        git \
-        ufw \
-        python3 \
-        python3-pip \
-        python3-venv \
-        python-is-python3 \
-        ffmpeg \
-        wget \
-        unzip \
-        htop \
-        net-tools || handle_error "Failed to install required packages"
+    local base_packages=()
+    for pkg in "${!BASE_PACKAGES[@]}"; do
+        base_packages+=("$pkg")
+    done
+    sudo apt-get install -y "${base_packages[@]}" || handle_error "Failed to install base packages"
     
-    # Install TypeScript globally
-    print_status "Installing TypeScript..."
-    sudo npm install -g typescript || handle_error "Failed to install TypeScript"
+    # Install Node.js from NodeSource if in development
+    if [[ "$ENVIRONMENT" == "development" ]]; then
+        print_status "Installing Node.js..."
+        curl -fsSL "$NODE_SOURCE_URL" | sudo -E bash - || handle_error "Failed to add NodeSource repository"
+        sudo apt-get install -y nodejs || handle_error "Failed to install Node.js"
+    fi
+    
+    # Install development-specific packages
+    if [[ "$ENVIRONMENT" == "development" ]]; then
+        print_status "Installing development packages..."
+        local dev_packages=()
+        for pkg in "${!DEV_PACKAGES[@]}"; do
+            dev_packages+=("$pkg")
+        done
+        sudo apt-get install -y "${dev_packages[@]}" || handle_error "Failed to install development packages"
+        
+        # Install TypeScript globally
+        print_status "Installing TypeScript..."
+        sudo npm install -g typescript || handle_error "Failed to install TypeScript"
+    fi
+    
+    # Install production-specific packages
+    if [[ "$ENVIRONMENT" == "production" ]]; then
+        print_status "Installing production packages..."
+        local prod_packages=()
+        for pkg in "${!PROD_PACKAGES[@]}"; do
+            prod_packages+=("$pkg")
+        done
+        sudo apt-get install -y "${prod_packages[@]}" || handle_error "Failed to install production packages"
+    fi
     
     # Create and activate Python virtual environment
     print_status "Setting up Python virtual environment..."
-    python3 -m venv ~/venv || handle_error "Failed to create Python virtual environment"
-    source ~/venv/bin/activate || handle_error "Failed to activate Python virtual environment"
+    python3 -m venv "$PYTHON_VENV_DIR" || handle_error "Failed to create Python virtual environment"
+    source "$PYTHON_VENV_DIR/bin/activate" || handle_error "Failed to activate Python virtual environment"
     
-    # Install Python packages in virtual environment including yt-dlp
+    # Install Python packages in virtual environment
     print_status "Installing Python packages..."
     pip install --upgrade pip || handle_error "Failed to upgrade pip"
-    pip install youtube-dl yt-dlp || handle_error "Failed to install youtube-dl and yt-dlp"
+    pip install "${PYTHON_PACKAGES[@]}" || handle_error "Failed to install Python packages"
     
     # Deactivate virtual environment
     deactivate
     
     # Add virtual environment activation to .bashrc
     print_status "Adding virtual environment configuration to .bashrc..."
-    echo "source ~/venv/bin/activate" >> ~/.bashrc
+    echo "source $PYTHON_VENV_DIR/bin/activate" >> ~/.bashrc
     
     # Set environment variable to skip Python check for youtube-dl-exec
     print_status "Setting up environment variables..."
@@ -408,7 +605,7 @@ install_docker() {
     fi
     
     # Download and install Docker Compose plugin
-    sudo curl -SL "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose || handle_error "Failed to download Docker Compose"
+    sudo curl -SL "$DOCKER_COMPOSE_URL/$DOCKER_COMPOSE_VERSION/docker-compose-linux-${ARCH}" -o /usr/local/lib/docker/cli-plugins/docker-compose || handle_error "Failed to download Docker Compose"
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose || handle_error "Failed to make Docker Compose executable"
     
     print_success "Docker installed successfully"
@@ -472,7 +669,7 @@ setup_apps() {
     mkdir -p "$APPS_DIR" || handle_error "Failed to create apps directory"
     
     # Process each app group
-    for config in "${APPS_CONFIG[@]}"; do
+    for config in "${APP_GROUPS[@]}"; do
         IFS=':' read -r group app_name network <<< "$config"
         print_status "Processing group: $group"
         
@@ -488,7 +685,7 @@ setup_apps() {
         chown -R $USER:$USER "$base_path" || handle_error "Failed to set ownership: $base_path"
         
         # Process apps for this group
-        for repo_config in "${APP_REPOS[@]}"; do
+        for repo_config in "${APP_REPOSITORIES[@]}"; do
             IFS=':' read -r repo_group app_name repo_url <<< "$repo_config"
             
             if [ "$repo_group" = "$group" ]; then
@@ -581,8 +778,8 @@ post_setup_tasks() {
 
 # Main execution
 main() {
-    echo "🚀 Video Summary API Setup Script"
-    echo "=================================="
+    echo "Video Summary API Setup Script"
+    echo "=============================="
     echo
     
     # Environment selection
@@ -602,7 +799,7 @@ main() {
     post_setup_tasks
     
     echo
-    print_success "✅ Setup complete for $ENVIRONMENT environment!"
+    print_success "Setup complete for $ENVIRONMENT environment!"
     
     if [[ "$ENVIRONMENT" == "development" ]]; then
         print_warning "Please log out and back in for Docker group changes to take effect."

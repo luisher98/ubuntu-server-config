@@ -36,7 +36,7 @@ This repository contains scripts and configurations for setting up and deploying
 
 ### Option 1: Interactive Setup (Recommended)
 ```bash
-cd && rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config && mkdir -p ~/apps && git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment && cd ~/apps/deployment && chmod +x setup-vm.sh && ./setup-vm.sh
+cd && sudo rm -rf ~/apps ~/backend ~/frontend ~/ubuntu-server-config && mkdir -p ~/apps && git clone https://github.com/luisher98/ubuntu-server-config.git ~/apps/deployment && cd ~/apps/deployment && chmod +x setup-vm.sh && ./setup-vm.sh
 ```
 
 ### Option 2: Direct Environment Selection
