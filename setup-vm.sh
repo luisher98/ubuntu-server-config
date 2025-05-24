@@ -62,8 +62,6 @@ declare -A BASE_PACKAGES=(
 # Development-specific packages
 declare -A DEV_PACKAGES=(
     ["nodejs"]="true"
-    ["typescript"]="true"
-    ["youtube-dl"]="true"
     ["yt-dlp"]="true"
 )
 
@@ -92,7 +90,6 @@ PYTHON_PACKAGES=(
 # Default values for environment variables
 declare -A ENV_DEFAULTS=(
     ["OPENAI_MODEL"]="gpt-3.5-turbo"
-    ["AZURE_STORAGE_AUTH_TYPE"]="servicePrincipal"
     ["MAX_FILE_SIZE"]="524288000"
     ["MAX_LOCAL_FILESIZE"]="209715200"
     ["MAX_LOCAL_FILESIZE_MB"]="100"
@@ -105,6 +102,7 @@ declare -A ENV_DEFAULTS=(
 declare -A REQUIRED_ENV_VARS=(
     ["OPENAI_API_KEY"]="OpenAI API Key"
     ["YOUTUBE_API_KEY"]="YouTube API Key"
+    ["AZURE_STORAGE_AUTH_TYPE"]="Azure Storage Authentication Type (servicePrincipal)"
     ["AZURE_STORAGE_ACCOUNT_NAME"]="Azure Storage Account Name"
     ["AZURE_STORAGE_CONNECTION_STRING"]="Azure Storage Connection String"
     ["AZURE_STORAGE_CONTAINER_NAME"]="Azure Storage Container Name"
@@ -518,20 +516,18 @@ install_packages() {
         print_status "Installing Node.js..."
         curl -fsSL "$NODE_SOURCE_URL" | sudo -E bash - || handle_error "Failed to add NodeSource repository"
         sudo apt-get install -y nodejs || handle_error "Failed to install Node.js"
-    fi
-    
-    # Install development-specific packages
-    if [[ "$ENVIRONMENT" == "development" ]]; then
+        
+        # Install TypeScript globally using npm
+        print_status "Installing TypeScript..."
+        sudo npm install -g typescript || handle_error "Failed to install TypeScript"
+        
+        # Install development-specific packages
         print_status "Installing development packages..."
         local dev_packages=()
         for pkg in "${!DEV_PACKAGES[@]}"; do
             dev_packages+=("$pkg")
         done
         sudo apt-get install -y "${dev_packages[@]}" || handle_error "Failed to install development packages"
-        
-        # Install TypeScript globally
-        print_status "Installing TypeScript..."
-        sudo npm install -g typescript || handle_error "Failed to install TypeScript"
     fi
     
     # Install production-specific packages
