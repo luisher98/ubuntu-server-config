@@ -25,8 +25,6 @@ services:
       - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS}
     ports:
       - "5050:5050"
-    volumes:
-      - ./backend:/app
     networks:
       - video-summary-network
     deploy:
@@ -38,7 +36,7 @@ services:
           cpus: '0.5'
           memory: 512M
     healthcheck:
-      test: ["CMD", "sh", "-c", "if command -v curl >/dev/null 2>&1; then curl -f http://localhost:5050/health; else wget -q --spider http://localhost:5050/health; fi"]
+      test: ["CMD", "sh", "-c", "if command -v curl >/dev/null 2>&1; then curl -f http://localhost:3000/health; else wget -q --spider http://localhost:3000/health; fi"]
       interval: 30s
       timeout: 10s
       retries: 3
