@@ -114,8 +114,6 @@ declare -A REQUIRED_ENV_VARS=(
 
 # Production-specific required variables
 declare -A PROD_REQUIRED_ENV_VARS=(
-    ["ADMIN_EMAIL"]="Admin Email (for SSL certificates)"
-    ["DOMAIN_NAME"]="Domain Name (e.g., api.yourdomain.com)"
 )
 
 # Environment File Templates Configuration
@@ -127,7 +125,6 @@ declare -A BACKEND_ENV_SECTIONS=(
     ["azure"]="Azure Storage Configuration"
     ["filesize"]="File Size Limits"
     ["ratelimit"]="Rate Limiting"
-    ["production"]="Production Configuration"
 )
 
 # Backend environment variables by section
@@ -138,7 +135,6 @@ declare -A BACKEND_ENV_VARS=(
     ["azure"]="AZURE_STORAGE_AUTH_TYPE AZURE_STORAGE_ACCOUNT_NAME AZURE_STORAGE_CONNECTION_STRING AZURE_STORAGE_CONTAINER_NAME AZURE_STORAGE_ACCOUNT_KEY AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET"
     ["filesize"]="MAX_FILE_SIZE MAX_LOCAL_FILESIZE MAX_LOCAL_FILESIZE_MB"
     ["ratelimit"]="RATE_LIMIT_WINDOW_MS RATE_LIMIT_MAX_REQUESTS"
-    ["production"]="ADMIN_EMAIL DOMAIN"
 )
 
 # Frontend environment file sections
@@ -722,10 +718,6 @@ setup_apps() {
             cp -r scripts "$base_path/" || handle_error "Failed to copy scripts"
             chmod +x "$base_path/scripts/"*.sh || handle_error "Failed to make scripts executable"
             
-            # Copy documentation
-            cp PRODUCTION-DEPLOYMENT.md "$base_path/" 2>/dev/null || true
-            cp VM-TESTING.md "$base_path/" 2>/dev/null || true
-            
             print_success "Application setup completed for $group"
         fi
     done
@@ -754,10 +746,15 @@ post_setup_tasks() {
         
         print_warning "Production environment setup completed!"
         print_warning "Next steps for production:"
-        echo "1. Configure your domain DNS to point to this server"
-        echo "2. Update backend/.env.prod with your production values"
-        echo "3. Run: sudo $APPS_DIR/video-summary/scripts/setup-ssl.sh -d yourdomain.com -e your@email.com"
-        echo "4. Run: sudo $APPS_DIR/video-summary/scripts/deploy-production.sh -d yourdomain.com"
+        echo "1. Update backend/.env.prod with your production API keys and configuration"
+        echo "2. cd $APPS_DIR/video-summary"
+        echo "3. docker compose up -d"
+        echo "4. Test the setup: curl http://localhost/health"
+        echo ""
+        echo "Optional SSL setup (if you have a domain):"
+        echo "1. Point your domain DNS to this server's IP"
+        echo "2. Run: ./scripts/setup-ssl.sh -d yourdomain.com -e your@email.com"
+        echo "3. Run: ./scripts/deploy-production.sh -d yourdomain.com"
         
     elif [[ "$ENVIRONMENT" == "development" ]]; then
         print_status "Setting up development-specific configurations..."
@@ -809,7 +806,6 @@ main() {
     echo
     print_status "Setup log location: This terminal output"
     print_status "Application directory: $APPS_DIR/video-summary"
-    print_status "Documentation: $APPS_DIR/video-summary/PRODUCTION-DEPLOYMENT.md"
 }
 
 # Run main function
